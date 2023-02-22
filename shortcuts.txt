@@ -1,0 +1,1 @@
+{"ms": "makeshortcut", "oc": "openconversation", "rm": "readmessages", "sm": "sendmessage", "h": "help", "au": "adduser"}

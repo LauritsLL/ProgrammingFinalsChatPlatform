@@ -1,0 +1,42 @@
+NOTES ON PROGRAM
+---------------------------------
+
+MAIN-CODE:
+main() function calls on main file run.
+    - Creates connection
+    - Enters main running loop, which is being run for the entire span of the program until termination by user
+
+running loop
+    - First prompting for login (Strips input)
+    - Options are: "register", "login" and "shutdown"
+
+register
+    - Prompt for username, first name, last name, password
+    - Proceeds to generate salt and hash password before storing in DB with registeruser()
+
+------------------------------------------------------------------------------------------------
+
+DB-CODE:
+registeruser()
+    - :args: username, salt, password, firstname, lastname
+    - :returns: registered user as dictionary
+    - Checks if username already exists in database with SELECT
+        * If so, print error message and return empty dictionary
+    - Else, hash passwd with python library hashlib and store user with execute_query()
+
+create_user_query()
+    - Database call to INSERT INTO DATABASE with user attributes.
+
+authenticate()
+    - :args: username, password
+    - :returns: Either empty dictionary or user
+    - Similar to register, if user found it hashes password+salt given and checks with database hash
+
+execute_query()
+    - :args: query
+    - Standard method for executing DB query without fetching any returned result
+
+execute_read_query()
+    - :args: query
+    - :returns: Result of DB search if any. Empty tuple if no results
+    - Standard method for executing DB query and fetch any returned result afterwards
