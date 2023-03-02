@@ -4,6 +4,7 @@ import hashlib
 import Table
 import random as r
 
+
 class DbManager():
     def __init__(self):
         self.host_name="localhost"
@@ -170,7 +171,7 @@ class DbManager():
         except Error as e:
             print(f"The error '{e}' occurred")
 
-    def authenticate(self, username, hashed):
+    def authenticate_user(self, username, hashed):
         user = Table.get('User', {'username': username})
         print(user)
 
@@ -199,6 +200,13 @@ class DbManager():
         else:
             return None
 
+    def set_nickname(self, user, opened_conversation, nickname):
+        """Set new nickname for current opened conversation."""
+        userconv = Table.get("UserConversationRelation", {"conversation": opened_conversation.get("id"), "user": user.get("id")})
+        userconv.set(nickname=nickname)
+        print("Sat username to: '" + nickname + "' successfully.")
+        return opened_conversation # For updating opened_conversation class
+
     def create_conversation(self, user, username):
         if username=="" or username == user.get("username"):
             if Table.get("UserConversationRelation",{"nickname":username,"user":user.get("id")}):
@@ -208,17 +216,18 @@ class DbManager():
             conversations = Table.get("Conversation",{"name":username},filtered=True)
             for conversation in conversations:
                 ucrel = Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")})
-                if ucrel:
+                if ucrel: # Check if a relation exists already.
                     # Can have same "names"/"nicknames" if they're empty.
                     if ucrel.get("nickname") == "":
                         print("Already have a conversation with the name of that username and that conversation has no nickname")
-                        return 
+                        return
+            # If there is no existant relation already or it has a nickname; proceed. 
             conversation=Table.Table("Conversation",{"name":""})
             Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
         else: 
             _user = Table.get("User",{"username":username})
             print("_user:",_user)
-            if _user == None:
+            if _user is None:
                 return
 
             conversation = Table.Table("Conversation", {"name":f"{user.get('username')} and {username}"})
@@ -238,9 +247,11 @@ class DbManager():
                 name+=user2.get("username") + " and "
             else:
                 name+=user2.get("username") + ", " 
+        
+        name += username
 
-        name += user.get("username")
         Table.Table("UserConversationRelation",{"user":user.get("id"),"nickname":"","conversation":conversation.get("id")})
+        conversation.set(name=name)
         conversation.data["users"].append(user)
         if len(users)==2:
             # Set the general name for conversation.
@@ -259,7 +270,9 @@ class DbManager():
                             nickname+=f"{user4.get('username')}"
                         unum+=1
                 userconversationrelation = Table.get("UserConversationRelation", {"user":user3.get("id"),"conversation":conversation.get("id")})
-                userconversationrelation.set("nickname",nickname)
+                userconversationrelation.set(nickname=nickname)
+        
+        return True
                 
 
     def create_message(self, user, conversation, message):
@@ -276,23 +289,39 @@ class DbManager():
         return messages
 
     def friend_request(self, username, user):
-        result = self.execute_read_query(f"SELECT * FROM user WHERE username = '{username}'")
-        if len(result)==0:
-            return "user not found"
-        self.execute_query(self.create_friend_request_query({"user1":user, "user2":result[0][0]}))
-        return f"friend request send to {username}"
+        user_to_request = Table.get("User", {'username': username})
+        if not user_to_request:
+            return "User not found"
+        
+        # User found - send request if no friend request have already been sent to that user.
+        pending_fr = Table.get("Friends", {"user1": user.get("id"), "user2": user_to_request.get("id")})
+        if pending_fr:
+            # A friend request have already been found. No more can be made.
+            return f"You have already requested '{username}' to be friends." if pending_fr.get("in_process") else f"You are already friends with '{username}'."
+        
+        # Send request.
+        Table.Table("Friends", {"user1":user.get("id"), "user2":user_to_request.get("id"), "in_process": 1})
+        return f"Friend request was send to user with username '{username}'"
 
     def get_friend_requests(self, user):
-        result=self.execute_read_query(f"SELECT * FROM friends WHERE user2={user} AND in_process=1")
-        requests=[]
-        for request in result:
-            requests.append({"id":request[0],"sender":self.execute_read_query(f"SELECT * FROM user WHERE id = {request[1]}")[0],"reciver":user})
-        return requests
+        pending_fr = Table.get("Friends", {"user2":user.get("id"), "in_process": 1}, filtered=True)
+        if pending_fr:
+            frequests=[]
+            for frequest in pending_fr:
+                frequests.append(frequest)
+            
+            return frequests
+        # Returns None object if no friend requests were found.
 
     def accept_friend_request(self, request):
-        self.execute_query(f"UPDATE friends SET in_process = 0 WHERE id={request['id']}")
+        request = Table.get("Friends", {"id": request.get("id")})
+        request.set(in_process=0) # Accepted.
+        return f"Friend request was accepted."
 
     def decline_friend_request(self, request):
-        self.execute_query(f"DELETE friends WHERE id={request['id']}")
+        # Declining is just deleting friend request without letting sending user know.
+        request = Table.get("Friends", {"id": request.get("id")})
+        request.delete() # Declined.
+        return f"Friend request was declined."
 
 manager = DbManager()
