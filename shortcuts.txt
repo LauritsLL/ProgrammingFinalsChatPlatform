@@ -1,1 +1,1 @@
-{"ms": "makeshortcut", "oc": "openconversation", "rm": "readmessages", "sm": "sendmessage", "h": "help", "au": "adduser", "sfr": "sendfriendrequest", "fr": "friendrequests"}
+{"ms": "makeshortcut", "oc": "openconversation", "rm": "readmessages", "sm": "sendmessage", "h": "help", "au": "adduser", "sfr": "sendfriendrequest", "fr": "friendrequests", "sc": "startconversation"}

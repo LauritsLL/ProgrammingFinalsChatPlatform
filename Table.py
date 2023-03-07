@@ -108,10 +108,7 @@ class Table():
             query=query[0:-1] + ");"
 
             dm.manager.execute_query(query)
-
-            
-        
-
+    
     def save(self, fields={}):
         query=f"UPDATE {self.tablename} SET"
         if not fields:

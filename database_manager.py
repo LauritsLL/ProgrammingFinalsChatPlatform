@@ -8,13 +8,16 @@ import random as r
 class DbManager():
     def __init__(self):
         self.host_name="localhost"
-        self.user_name="root"
+        self.username="root"
         self.user_password=""
         self.db_name="chatplatform"
         self.connection = None
-           
+
+    # Only works with print(end="")
+    def list_format(self, i, l): return l[i] + (" | " if not i+1 == len(l) else "\n")
+
     def setup(self):
-        self.create_connection(self.host_name, self.user_name, self.user_password)
+        self.create_connection(self.host_name, self.username, self.user_password)
         # Create database if it doesn't already exists.
         cmd = f"""
         CREATE DATABASE IF NOT EXISTS `{self.db_name}`;
@@ -23,7 +26,7 @@ class DbManager():
         self.connection.close()
         self.connection = None
         
-        self.create_connection(self.host_name, self.user_name, self.user_password, self.db_name)
+        self.create_connection(self.host_name, self.username, self.user_password, self.db_name)
         
         tables={}
 
@@ -140,11 +143,11 @@ class DbManager():
         for v in tables.values():
             self.execute_query(v)
     
-    def create_connection(self, host_name, user_name, user_password, db_name=""):
+    def create_connection(self, host_name, username, user_password, db_name=""):
         try:
             self.connection = mysql.connector.connect(
                             host=host_name,
-                            user=user_name,
+                            user=username,
                             passwd=user_password,
                             database=db_name,
                         )
@@ -192,7 +195,6 @@ class DbManager():
 
     def registeruser(self, username, salt, hashed, firstname, lastname):
         user = Table.get("User", {'username': username})
-        # print(user)
         if user is None:
             # User is by default authenticated when registering first time.
             return Table.Table("User",
@@ -202,11 +204,22 @@ class DbManager():
 
     def set_nickname(self, user, opened_conversation, nickname):
         """Set new nickname for current opened conversation."""
+        # TODO: MAKE IT SO THAT ANY CONVERSATION'S NICKNAME MUST BE UNIQUE WITH RESPECT TO NAME AND NICKNAME for the same user.
         userconv = Table.get("UserConversationRelation", {"conversation": opened_conversation.get("id"), "user": user.get("id")})
         userconv.set(nickname=nickname)
-        print("Sat username to: '" + nickname + "' successfully.")
-        return opened_conversation # For updating opened_conversation class
-
+        status = "Sat conversation nickname to: '" + nickname + "' successfully."
+        return status, opened_conversation # For updating opened_conversation
+    
+    def is_friends_with(self, user, other):
+        """Check if user is befriended with other user."""
+        if Table.get("Friends", {"user1": other.get("id"), "user2": user.get("id")}) is not None: 
+            return True
+        
+        if Table.get("Friends", {"user1": user.get("id"), "user2": other.get("id")}) is not None: 
+            return True
+            
+        return False
+    
     def create_conversation(self, user, username):
         if username=="" or username == user.get("username"):
             if Table.get("UserConversationRelation",{"nickname":username,"user":user.get("id")}):
@@ -225,16 +238,22 @@ class DbManager():
             conversation=Table.Table("Conversation",{"name":""})
             Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
         else: 
-            _user = Table.get("User",{"username":username})
-            print("_user:",_user)
-            if _user is None:
-                return
-
-            conversation = Table.Table("Conversation", {"name":f"{user.get('username')} and {username}"})
-
-            # Generating relation between users both ways.
-            Table.Table("UserConversationRelation",{"user":_user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
-            Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":_user.get("username"),"conversation":conversation.get("id")})
+            # Check that username is befriended.
+            other_user = Table.get("User", {"username": username})
+            if other_user is None: print("No friends found with that username."); return
+            if not self.is_friends_with(user, other_user):
+                print("You are not friends with this user yet or the user does not exist.")
+            else:
+                receiving_user = Table.get("User",{"username":username})
+                if receiving_user is None:
+                    print(f"No user found with username '{username}'.")
+                    return
+                
+                conversation = Table.Table("Conversation", {"name":f"{user.get('username')} and {username}"})
+                
+                # Generating relation between users both ways.
+                Table.Table("UserConversationRelation",{"user":receiving_user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
+                Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":receiving_user.get("username"),"conversation":conversation.get("id")})
 
     def add_user_to_conversation(self, conversation, username):
         user=Table.get("User",{"username":username})
@@ -289,29 +308,47 @@ class DbManager():
         return messages
 
     def friend_request(self, username, user):
+        if username == user.get("username"):
+            return "ARE U SO SAD YOU WANT TO FRIEND REQUEST YOURSELF? ARE YOU SHITTING YOUR PANTS AT YOUR MOM'S HOME??! GET A F'IN LIFE!"
         user_to_request = Table.get("User", {'username': username})
         if not user_to_request:
             return "User not found"
         
         # User found - send request if no friend request have already been sent to that user.
-        pending_fr = Table.get("Friends", {"user1": user.get("id"), "user2": user_to_request.get("id")})
+        pending_fr = self.get_friend_requests(user, Table.get("User",{"username":username}))
+        if pending_fr:
+            # A friend request have already been found. No more can be made.
+            return f"'{username}' already requested you to be friends." if pending_fr.get("in_process") else f"You are already friends with '{username}'."
+        pending_fr=self.get_friend_requests(Table.get("User",{"username":username}), user)
         if pending_fr:
             # A friend request have already been found. No more can be made.
             return f"You have already requested '{username}' to be friends." if pending_fr.get("in_process") else f"You are already friends with '{username}'."
+        
+        
         
         # Send request.
         Table.Table("Friends", {"user1":user.get("id"), "user2":user_to_request.get("id"), "in_process": 1})
         return f"Friend request was send to user with username '{username}'"
 
-    def get_friend_requests(self, user):
-        pending_fr = Table.get("Friends", {"user2":user.get("id"), "in_process": 1}, filtered=True)
+    def get_friend_requests(self, user, user2=None):
+        # As a default the CURRENT user is the RECEIVING user for the pending friend request.
+        if user2 is None:
+            pending_fr = Table.get("Friends", {"user2":user.get("id"), "in_process": 1}, filtered=True)
+        else:
+            pending_fr = Table.get("Friends", {"user1":user2.get("id"),"user2":user.get("id"), "in_process": 1})
+        
         if pending_fr:
-            frequests=[]
-            for frequest in pending_fr:
-                frequests.append(frequest)
-            
-            return frequests
-        # Returns None object if no friend requests were found.
+            return pending_fr
+        # "Returns" None object if no friend requests were found.
+    
+    def get_friends(self, user):
+        friends = Table.get("Friends", {"user1": user.get("id"), "in_process": 0}, filtered=True)
+        f2 = Table.get("Friends", {"user2": user.get("id"), "in_process": 0}, filtered=True)
+        friends.extend(f2)
+        if not friends:
+            return None
+        
+        return friends
 
     def accept_friend_request(self, request):
         request = Table.get("Friends", {"id": request.get("id")})

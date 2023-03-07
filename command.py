@@ -16,18 +16,22 @@ class Command():
             "help":self.help,"startconversation":self.start_conversation,  "openconversation":self.open_conversation,
             "adduser":self.add_user, "logout":self.logout, "sendmessage":self.send_message, "readmessages":self.read_messages,"printuser":self.print_user, 
             "sendfriendrequest":self.send_friend_request, "friendrequests":self.friend_requests,"makeshortcut":self.make_shortcut,
-            "shortcuts":self.shortcuts,"members":self.members,"setnickname":self.set_nickname,
+            "shortcuts":self.shortcuts,"members":self.members,"setnickname":self.set_nickname, "friends": self.friends,
         }
         try:
             with open("shortcuts.txt", "r") as f:
-                self.shortcuts=json.loads(f.read())
+                self.user_shortcuts=json.loads(f.read())
         except FileNotFoundError:
-            self.shortcuts={}
-        
-
+            self.user_shortcuts={}
     
     def command_format(self, command): return command.replace(" ", "").replace("_", "").lower()
-
+    # Only works with print(end="")
+    def list_format(self, l):
+        s = ""
+        for i in range(len(l)):
+            s += l[i] + (" | " if not i+1 == len(l) else "")
+        print(s)
+    
     def help(self):
         """prints all the commands"""
         print("_ and spaces are ignored. Please proceed.")
@@ -78,6 +82,8 @@ class Command():
 
     def open_conversation(self):
         """opens a conversation by setting the opened_conversation to a giving conversation"""
+        # print("If multiple conversation with same name are found, the first one in the list will be picked.")
+        # print("You can afterwards use 'setnickname' command to change name.") # NOT IMPLEMENTED YET
         #gets the name of the conversation to open
         conversationToOpen=input("Which conversation do you want to open: ")
         if conversationToOpen=="ls":
@@ -99,6 +105,13 @@ class Command():
         if conversationToOpen == "back":
             return
         
+        # # Try getting conversation through nickname. (WILL WORK IF CREATING CONVERSATION IS RESTRICTED TO ONE CONVERSATION ONLY WITH ONE USER -
+        # # SUCH THAT IT IS ILLEGAL TO FOR EXAMPLE HAVE TWO CONVERSATIONS BETWEEN: l and burak )
+        # ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":self.user.get("id")})
+        # # Add conversations with the name also to ensure that one conversation with that name OR nickname was found (Else no conversation exist).
+        # temp = Table.get("Conversation",{"name":conversationToOpen})
+        # ucrel = temp if temp and not ucrel else ucrel
+
         ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":self.user.get("id")},filtered=True)
         conversations = Table.get("Conversation",{"name":conversationToOpen},filtered=True)
         for conversation in conversations:
@@ -107,30 +120,27 @@ class Command():
         if len(ucrel) > 1:
             print("More than one conversation with that name")
         elif len(ucrel) != 0:
-            ucrel=ucrel[0] # Will only be 1 element, always
+            ucrel = ucrel[0] # Will always be one element.
             conversation=Table.get("Conversation",{'id': ucrel.get("conversation")})
             self.opened_conversation=Table.Table("Conversation",{"id":conversation.get("id"),"nickname":ucrel.get("nickname"),"name":conversation.get("name")},commit=False)
             if conversation.get("class") is None:
                 userconversationrelations = Table.get("UserConversationRelation",{'conversation':conversation.get("id")},filtered=True)
                 users=[]
                 for userconversationrelation in userconversationrelations:
-                    _user=Table.get("User",{"id":userconversationrelation.get("user")})
-                    users.append(_user)
+                    with_user=Table.get("User",{"id":userconversationrelation.get("user")})
+                    users.append(with_user)
                 self.opened_conversation.set(commit=False, users=users)
                 print("OPENED CONVERS:",self.opened_conversation)
             else:
                 #this is a class do something
                 pass
-
-
         else:
-            print("conversation not found")
+            print("Conversation not found")
             self.open_conversation()
             return
 
     def send_message(self):
         """if there are a open conversation get a message from the user can add the message to the conversation"""
-        print(self.opened_conversation)
         #returns if there is no open conversation
         if self.opened_conversation == None:
             print("no conversation opened")
@@ -142,20 +152,20 @@ class Command():
         #creates a message obj with the user as the sender the opened_conversation as the conversation and a message
         dm.manager.create_message(self.user, self.opened_conversation, message)
 
-    def print_user(self):
+    def print_user(self): # DEBUG/TESTING
         print(self.user)
 
     def read_messages(self):
-        """gets all messages in a conversation and prints it"""
+        """Gets all messages in a conversation and prints it"""
         #return of there are no opened conversation
         if self.opened_conversation == None:
-            print("no conversation opened")
+            print("No conversation opened")
             return
         #gets all the messages for the opened_conversation
         messages=dm.manager.get_messages(self.opened_conversation)
         #returns if there are no messages and prints no message in this conversation
         if messages == None: 
-            print("no messages in this conversation")
+            print("No messages in this conversation")
             return
         
         for msg in messages:
@@ -238,12 +248,12 @@ class Command():
                         print(c)
 
     def start_conversation(self):
-        username=input("username: ")
+        username=input("With username: ")
         dm.manager.create_conversation(self.user,username)
 
     def add_user(self):
         if self.opened_conversation == None:
-            print("no opened conversation")
+            print("No opened conversation")
             return
         
         username=input("Who do you want to add: ")
@@ -259,24 +269,47 @@ class Command():
         if self.opened_conversation:
             users = self.opened_conversation.get("users")
             usernames = [u.get("username") for u in users]
-            print("Users in conversation:",*(n + " | " for n in usernames))
+            print("Users in conversation:")
+            self.list_format(usernames)
     
     def set_nickname(self):
         """Set nickname of currently opened convo."""
         if self.opened_conversation:
             # Get new nickname
             new_nickname = input("Enter the new nickname: ")
-            self.opened_conversation = dm.manager.set_nickname(self.user, self.opened_conversation, new_nickname)
+            status, self.opened_conversation = dm.manager.set_nickname(self.user, self.opened_conversation, new_nickname)
+            print(status)
         else:
             print("No conversation have been opened.")
+    
+    def friends(self):
+        """List current friends of current user."""
+        friends = dm.manager.get_friends(self.user)
+        if not friends:
+            print("You currently have no friends HA! Sad you :)")
+            return
+        
+        # Acquiring the "other user" in the friend request.
+        print(f"Current friends of user '{self.user.get('username')}':")
+        names=[]
+        for f in friends:
+            un=Table.get("User", {"id": f.get("user2")}).get("username")
+            if un != self.user.get("username"):
+                names.append(un)
+            un=Table.get("User", {"id": f.get("user1")}).get("username")    
+            if un != self.user.get("username"):
+                names.append(un)
+        
+        self.list_format(names)
 
     def logout(self):
         self.user=None
         self.opened_conversation=None
+        self.get_user_obj() # Check if new user wants to sign in.
 
     def shortcuts(self):
         s="\n"
-        for k,v in self.shortcuts.items():
+        for k,v in self.user_shortcuts.items():
            s+=f"{k}: {v}\n"
         print(s)      
 
@@ -285,12 +318,30 @@ class Command():
         command = self.command_format(command)
         if self.commands.get(command,None) is not None:
             shortcut=input("What do you want the shortcut to be: ")
-            self.shortcuts[shortcut]=command
+            self.user_shortcuts[shortcut]=command
             #Save shortcuts in shortcuts fil
             # Save shortcuts.
             # Sejr vil gerne have at shortcuts skal gemmes og lave file calls hver gang. SHAME ON HIM!
             f = open('shortcuts.txt', 'w')
-            json.dump(self.shortcuts,f)
+            json.dump(self.user_shortcuts,f)
             f.close()
+    
+    def get_user_obj(self):
+        """Get user object."""
+        while not self.user:
+            #while there are no user loggedin ask if the want to login or register
+            inp=input("Login/Register/Shutdown: ")
+            inp = self.command_format(inp)
+        
+            if inp == "register" or inp == "r":
+                self.register()
+            elif inp == "login" or inp == "l":
+                self.login()
+            elif inp == "shutdown":
+                #if they want to shutdown the program.
+                return False
+            else:
+                print("Try again")
+        return True
 
 commands = Command()

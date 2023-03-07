@@ -1,0 +1,5 @@
+1:
+Man kan lave flere samtaler med den samme, ene person. STORT PROBLEM
+
+2:
+TODO: MAKE IT SO THAT ANY CONVERSATION'S NICKNAME MUST BE UNIQUE WITH RESPECT TO NAME AND NICKNAME for the same user.
