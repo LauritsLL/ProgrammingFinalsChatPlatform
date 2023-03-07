@@ -13,8 +13,11 @@ class DbManager():
         self.db_name="chatplatform"
         self.connection = None
 
-    # Only works with print(end="")
-    def list_format(self, i, l): return l[i] + (" | " if not i+1 == len(l) else "\n")
+    def list_format(self, l):
+        s = ""
+        for i in range(len(l)):
+            s += l[i] + (" | " if not i+1 == len(l) else "")
+        print(s)
 
     def setup(self):
         self.create_connection(self.host_name, self.username, self.user_password)
@@ -229,11 +232,11 @@ class DbManager():
             conversations = Table.get("Conversation",{"name":username},filtered=True)
             for conversation in conversations:
                 ucrel = Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")})
-                if ucrel: # Check if a relation exists already.
-                    # Can have same "names"/"nicknames" if they're empty.
-                    if ucrel.get("nickname") == "":
-                        print("Already have a conversation with the name of that username and that conversation has no nickname")
-                        return
+            
+                # Can have same "names"/"nicknames" if they're empty.
+                if ucrel.get("nickname") == "":
+                    print("Already have a conversation with the name of that username and that conversation has no nickname")
+                    return
             # If there is no existant relation already or it has a nickname; proceed. 
             conversation=Table.Table("Conversation",{"name":""})
             Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
