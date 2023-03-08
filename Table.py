@@ -126,9 +126,9 @@ class Table():
         else:
             # Save specific fields.
             # Assume they exist in DB (Else LOGIC ERROR)
-            # TODO: Add check for existance.
+            # TODO: Add check for existance. SHOULD WORK NOW
             for k,v in fields.items():
-                if k == "id":
+                if k == "id" or not k in get_column_names(self.tablename):
                     continue
                 if type(v) in typeswithquotes:
                     query+=f" {k} = '{v}',"

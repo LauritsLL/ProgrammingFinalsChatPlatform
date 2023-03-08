@@ -14,9 +14,10 @@ class Command():
         # A Dictionary with the command(s) the user can write as the key and the function it calls as the value.
         self.commands={
             "help":self.help,"startconversation":self.start_conversation,  "openconversation":self.open_conversation,
-            "adduser":self.add_user, "logout":self.logout, "sendmessage":self.send_message, "readmessages":self.read_messages,"printuser":self.print_user, 
-            "sendfriendrequest":self.send_friend_request, "friendrequests":self.friend_requests,"makeshortcut":self.make_shortcut,
-            "shortcuts":self.shortcuts,"members":self.members,"setnickname":self.set_nickname, "friends": self.friends,
+            "adduser":self.add_user, "logout":self.logout, "sendmessage":self.send_message, "readmessages":self.read_messages,
+            "printuser":self.print_user, "sendfriendrequest":self.send_friend_request, "friendrequests":self.friend_requests,
+            "friends": self.friends, "makeshortcut":self.make_shortcut,"shortcuts":self.shortcuts,"members":self.members,
+            "setnickname":self.set_nickname, "changename":self.change_name,
         }
         try:
             with open("shortcuts.txt", "r") as f:
@@ -25,7 +26,85 @@ class Command():
             self.user_shortcuts={}
     
     def command_format(self, command): return command.replace(" ", "").replace("_", "").lower()
-    # Only works with print(end="")
+
+    def create_privatekey(self):
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
+        )
+
+        from cryptography.hazmat.primitives import serialization
+
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+
+        with open(f'{self.user.get("id")}_private_key.pem', 'wb') as f:
+            f.write(pem)
+        
+        return private_key
+
+    def get_privatekey(self):
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives import serialization
+        try:
+            with open(f'{self.user.get("id")}_private_key.pem', "rb") as key_file:
+                private_key = serialization.load_pem_private_key(
+                    key_file.read(),
+                    password=None,
+                    backend=default_backend()
+                )
+            return private_key, "success"
+        except FileNotFoundError:
+            return None, "File not found"
+
+    def send_publickey_to_database(self, publickey):
+        from cryptography.hazmat.primitives import serialization
+
+        pem = publickey.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+
+    def encrypt_message(self,message):
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric import padding
+
+        public_key = self.get_privatekey().public_key()
+
+        encrypted = public_key.encrypt(
+            message,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return encrypted
+    
+    def decryptmessage(self,encrypted_message):
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric import padding
+
+        
+        private_key = self.get_privatekey()
+
+        original_message = private_key.decrypt(
+            encrypted_message,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return original_message
+
     def list_format(self, l):
         s = ""
         for i in range(len(l)):
@@ -86,21 +165,27 @@ class Command():
         # print("You can afterwards use 'setnickname' command to change name.") # NOT IMPLEMENTED YET
         #gets the name of the conversation to open
         conversationToOpen=input("Which conversation do you want to open: ")
-        if conversationToOpen=="ls":
-            #if the user wrote ls print all the names of the conversations
-            #gets all userconversation realtion for the login user
-            conversation=Table.get("UserConversationRelation",{'user':self.user.get("id")},filtered=True)
-            for userconversation in conversation:
-                #foreach user check if the nickname is equal to ""
-                if userconversation.get("nickname") == "":
-                    #if it is get the name of the of conversation and print it
-                    print("Name:",Table.get("Conversation",{'id': userconversation.get("conversation")}).get("name"))
-                else:
-                    #else print the nickname
-                    print("Name:",userconversation.get("nickname"))
-            #call open_conversation again
-            self.open_conversation() # GRIMT ÆNDR!
-            return
+        if conversationToOpen[0:2] == "ls":
+            if conversationToOpen == "ls":
+                conversations = list(dm.manager.get_conversations(self.user))
+                for conversation in conversations:
+                    nickname = conversation.get("nickname")
+                    if nickname is not None:
+                        print(nickname)
+                    else:
+                        print(conversation.get("name"))
+                #call open_conversation again
+                self.open_conversation() # GRIMT ÆNDR!
+                return
+            elif conversationToOpen.replace(" ","").replace("_","") == "lsids":
+                conversations = dm.manager.get_conversations(self.user,get_ids=True)
+                print("name   nickname   id")
+                for conversation in conversations:
+                    con_id=conversation.get('con_id')
+                    print(f"{conversation.get('name')}   {conversation.get('nickname')}   #{'0'*(5-len(str(con_id)))}{con_id}")
+                #call open_conversation again
+                self.open_conversation() # GRIMT ÆNDR!
+                return
 
         if conversationToOpen == "back":
             return
@@ -112,32 +197,10 @@ class Command():
         # temp = Table.get("Conversation",{"name":conversationToOpen})
         # ucrel = temp if temp and not ucrel else ucrel
 
-        ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":self.user.get("id")},filtered=True)
-        conversations = Table.get("Conversation",{"name":conversationToOpen},filtered=True)
-        for conversation in conversations:
-            ucrel.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":self.user.get("id")}))
-        
-        if len(ucrel) > 1:
-            print("More than one conversation with that name")
-        elif len(ucrel) != 0:
-            ucrel = ucrel[0] # Will always be one element.
-            conversation=Table.get("Conversation",{'id': ucrel.get("conversation")})
-            self.opened_conversation=Table.Table("Conversation",{"id":conversation.get("id"),"nickname":ucrel.get("nickname"),"name":conversation.get("name")},commit=False)
-            if conversation.get("class") is None:
-                userconversationrelations = Table.get("UserConversationRelation",{'conversation':conversation.get("id")},filtered=True)
-                users=[]
-                for userconversationrelation in userconversationrelations:
-                    with_user=Table.get("User",{"id":userconversationrelation.get("user")})
-                    users.append(with_user)
-                self.opened_conversation.set(commit=False, users=users)
-                print("OPENED CONVERS:",self.opened_conversation)
-            else:
-                #this is a class do something
-                pass
-        else:
-            print("Conversation not found")
-            self.open_conversation()
-            return
+        con, status = dm.manager.open_conversation(conversationToOpen)
+        print(status)
+        if con != None:
+            self.opened_conversation = con
 
     def send_message(self):
         """if there are a open conversation get a message from the user can add the message to the conversation"""
@@ -256,14 +319,15 @@ class Command():
             print("No opened conversation")
             return
         
+
         username=input("Who do you want to add: ")
         for _user in self.opened_conversation.get("users"):
             if _user.get("username") == username:
                 print(f"{username} is already in this conversation")
                 break
         else:
-            success = dm.manager.add_user_to_conversation(self.opened_conversation, username)
-            print(f"User '{username}' was {'' if success else 'not '} successfully added.")
+            status = dm.manager.add_user_to_conversation(self.user, self.opened_conversation, username)
+            print(status)
 
     def members(self):
         if self.opened_conversation:
@@ -277,11 +341,19 @@ class Command():
         if self.opened_conversation:
             # Get new nickname
             new_nickname = input("Enter the new nickname: ")
-            status, self.opened_conversation = dm.manager.set_nickname(self.user, self.opened_conversation, new_nickname)
+            status = dm.manager.set_nickname(self.user, self.opened_conversation, new_nickname)
             print(status)
         else:
             print("No conversation have been opened.")
-    
+
+    def change_name(self):
+        if self.opened_conversation:
+            print(f"what would you like to change the name of '{self.opened_conversation.get('name')}'")
+            name=input(">")
+            dm.manager.change_name(name,self.opened_conversation)
+        else:
+            print("Open a conversation first")
+
     def friends(self):
         """List current friends of current user."""
         friends = dm.manager.get_friends(self.user)

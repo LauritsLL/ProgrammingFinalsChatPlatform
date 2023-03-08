@@ -53,7 +53,7 @@ class DbManager():
         tables["Usertable"]= """
         CREATE TABLE IF NOT EXISTS User ( 
             id INT NOT NULL,
-            username VARCHAR(32) NOT NULL,
+            username VARCHAR(32) NOT NULL UNIQUE,
             firstname VARCHAR(32) NOT NULL,
             lastname VARCHAR(64) NOT NULL,
             salt VARCHAR(10) NOT NULL,
@@ -88,7 +88,8 @@ class DbManager():
         CREATE TABLE IF NOT EXISTS Conversation (
             id INT NOT NULL,
             name VARCHAR(32),
-            class INT, 
+            class INT,
+            con_id INT UNIQUE, 
             PRIMARY KEY (id),
             FOREIGN KEY (class) REFERENCES Class(id)
         ) ENGINE = InnoDB
@@ -115,9 +116,29 @@ class DbManager():
             FOREIGN KEY (sender) REFERENCES User(id),
             FOREIGN KEY (conversation) REFERENCES Conversation(id)
         ) ENGINE = InnoDB
+        """    
+
+        tables["Devicetable"]= """
+        CREATE TABLE IF NOT EXISTS Device (
+            id INT NOT NULL,
+            user INT NOT NULL,
+            publickey VARCHAR(1700) NOT NULL,
+            PRIMARY KEY (id),
+            FOREIGN KEY (user) REFERENCES User(id),
+        ) ENGINE = InnoDB
         """
 
-        
+        tables["EncryptedMessagestable"]= """
+        CREATE TABLE IF NOT EXISTS EncryptedMessages (
+            id INT NOT NULL,
+            message INT NOT NULL,
+            device INT NOT NULL,
+            text VARCHAR(256) NOT NULL,
+            PRIMARY KEY (id),
+            FOREIGN KEY (user) REFERENCES User(id),
+            FOREIGN KEY (message) REFERENCES Message(id),
+        ) ENGINE = InnoDB
+        """
 
         tables["UserConversationRelationtable"]= """
         CREATE TABLE IF NOT EXISTS UserConversationRelation (
@@ -130,8 +151,7 @@ class DbManager():
             FOREIGN KEY (conversation) REFERENCES Conversation(id)
         ) ENGINE = InnoDB
         """
-        
-        
+            
         tables["ClassILAttributes"] = """
         CREATE TABLE IF NOT EXISTS ClassILAttributes (
             id INT NOT NULL,
@@ -207,11 +227,13 @@ class DbManager():
 
     def set_nickname(self, user, opened_conversation, nickname):
         """Set new nickname for current opened conversation."""
-        # TODO: MAKE IT SO THAT ANY CONVERSATION'S NICKNAME MUST BE UNIQUE WITH RESPECT TO NAME AND NICKNAME for the same user.
         userconv = Table.get("UserConversationRelation", {"conversation": opened_conversation.get("id"), "user": user.get("id")})
         userconv.set(nickname=nickname)
         status = "Sat conversation nickname to: '" + nickname + "' successfully."
-        return status, opened_conversation # For updating opened_conversation
+        return status
+    
+    def change_name(self, name, opened_conversation):
+        opened_conversation.set(name=name)
     
     def is_friends_with(self, user, other):
         """Check if user is befriended with other user."""
@@ -225,20 +247,12 @@ class DbManager():
     
     def create_conversation(self, user, username):
         if username=="" or username == user.get("username"):
-            if Table.get("UserConversationRelation",{"nickname":username,"user":user.get("id")}):
-                print("Already have a conversation with the nickname of that username")
-                return
-            
-            conversations = Table.get("Conversation",{"name":username},filtered=True)
-            for conversation in conversations:
-                ucrel = Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")})
-            
-                # Can have same "names"/"nicknames" if they're empty.
-                if ucrel.get("nickname") == "":
-                    print("Already have a conversation with the name of that username and that conversation has no nickname")
-                    return
-            # If there is no existant relation already or it has a nickname; proceed. 
-            conversation=Table.Table("Conversation",{"name":""})
+
+            con_id=r.randint(0,99999)
+            while Table.get("Conversation",{"con_id":con_id}) is not None:
+                con_id=r.randint(0,99999)
+                 
+            conversation=Table.Table("Conversation",{"name":"","con_id":con_id})
             Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
         else: 
             # Check that username is befriended.
@@ -247,20 +261,76 @@ class DbManager():
             if not self.is_friends_with(user, other_user):
                 print("You are not friends with this user yet or the user does not exist.")
             else:
-                receiving_user = Table.get("User",{"username":username})
-                if receiving_user is None:
-                    print(f"No user found with username '{username}'.")
-                    return
-                
-                conversation = Table.Table("Conversation", {"name":f"{user.get('username')} and {username}"})
+                name = f"{user.get('username')} and {username}"
+                con_id=r.randint(0,99999)
+                while Table.get("Conversation",{"con_id":con_id}) is not None:
+                    con_id=r.randint(0,99999)
+                conversation = Table.Table("Conversation", {"name":name,"con_id":con_id})
                 
                 # Generating relation between users both ways.
-                Table.Table("UserConversationRelation",{"user":receiving_user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
-                Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":receiving_user.get("username"),"conversation":conversation.get("id")})
+                Table.Table("UserConversationRelation",{"user":other_user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
+                Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":other_user.get("username"),"conversation":conversation.get("id")})
 
-    def add_user_to_conversation(self, conversation, username):
-        user=Table.get("User",{"username":username})
+    def get_conversations(self, user, get_ids=False):
+        try:
+            ucrs = Table.get("UserConversationRelation",{"user":user.get("id")},filtered=True)
+            conversations=[]
+            for ucr in ucrs:
+                conversations.append(Table.get("Conversation",{"id":ucr.get("conversation")}))
+
+            for conversation in conversations:
+                nickname = Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")}).get("nickname")  
+                if get_ids or nickname != "":
+                    conversation.set(commit=False, nickname=nickname)
+
+            return conversations
+        except Error as e:
+            print(e)
+
+    def open_conversation(self,conversationToOpen,):
+        if conversationToOpen[0] == "#":
+            try:
+                con_id=int(conversationToOpen)
+                conversation = Table.get("Conversation",{"con_id":con_id}) 
+                if conversation is not None:
+                    status="Conversation found"
+                else:
+                    status="Conversation not found"
+                return conversation, status
+            
+            except ValueError:
+                return None, "using '#' means its a id and it should be followed by an integer"
+            
+        ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":self.user.get("id")},filtered=True)
+        conversations = Table.get("Conversation",{"name":conversationToOpen},filtered=True)
+        for conversation in conversations:
+            ucrel.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":self.user.get("id")}))
         
+        if len(ucrel) > 1:
+            print("More than one conversation with that name")
+        elif len(ucrel) != 0:
+            ucrel = ucrel[0] # Will always be one element.
+            conversation=Table.get("Conversation",{'id': ucrel.get("conversation")})
+            opened_conversation=Table.Table("Conversation",{"id":conversation.get("id"),"nickname":ucrel.get("nickname"),"name":conversation.get("name")},commit=False)
+            if conversation.get("class") is None:
+                userconversationrelations = Table.get("UserConversationRelation",{'conversation':conversation.get("id")},filtered=True)
+                users=[]
+                for userconversationrelation in userconversationrelations:
+                    with_user=Table.get("User",{"id":userconversationrelation.get("user")})
+                    users.append(with_user)
+                opened_conversation.set(commit=False, users=users)
+                print("OPENED CONVERS:",opened_conversation)
+            else:
+                #this is a class do something
+                pass
+            return opened_conversation, "success"
+        else:
+            return None,"Conversation not found"
+
+    def add_user_to_conversation(self, _user, conversation, username):
+        user=Table.get("User",{"username":username})
+        if not self.is_friends_with(user,_user):
+            return f"you are not friends with {username}"
         # Enumerating through already added users to modify conversation name.
         name=""
         users = conversation.get("users")
@@ -294,9 +364,8 @@ class DbManager():
                 userconversationrelation = Table.get("UserConversationRelation", {"user":user3.get("id"),"conversation":conversation.get("id")})
                 userconversationrelation.set(nickname=nickname)
         
-        return True
+        return f"{username} is added to the conversation"
                 
-
     def create_message(self, user, conversation, message):
         Table.Table("Message", {"sender":user.get("id"), "conversation":conversation.get("id"), "text":str(message)})
         
@@ -363,5 +432,8 @@ class DbManager():
         request = Table.get("Friends", {"id": request.get("id")})
         request.delete() # Declined.
         return f"Friend request was declined."
+
+    def create_device(self, publickey, user, device_id=""):
+        Table.Table("Device",{"publickey":publickey,"device":device_id,"user":user.get("id")})
 
 manager = DbManager()
