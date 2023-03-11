@@ -5,29 +5,29 @@ import random as r
 import database_manager as dm
 import Table
 
+from cryptography.hazmat.primitives import serialization
 
+class Encryption():
+    """General-purpose class for encryption"""
+    def __init__(self) -> None:
+        self.private_key = None
+        self.public_key = None
+        self.device = None
 
-class Command():
-    def __init__(self):
-        self.user = None
-        self.opened_conversation=None
-        # A Dictionary with the command(s) the user can write as the key and the function it calls as the value.
-        self.commands={
-            "help":self.help,"startconversation":self.start_conversation,  "openconversation":self.open_conversation,
-            "adduser":self.add_user, "logout":self.logout, "sendmessage":self.send_message, "readmessages":self.read_messages,
-            "printuser":self.print_user, "sendfriendrequest":self.send_friend_request, "friendrequests":self.friend_requests,
-            "friends": self.friends, "makeshortcut":self.make_shortcut,"shortcuts":self.shortcuts,"members":self.members,
-            "setnickname":self.set_nickname, "changename":self.change_name,
-        }
-        try:
-            with open("shortcuts.txt", "r") as f:
-                self.user_shortcuts=json.loads(f.read())
-        except FileNotFoundError:
-            self.user_shortcuts={}
-    
-    def command_format(self, command): return command.replace(" ", "").replace("_", "").lower()
+    def setup_encryption(self, user):
+        self.private_key = self.get_privatekey(user)
+        if not self.private_key:
+            # Generate private key for user-device.
+            self.private_key = self.create_privatekey(user)
+            self.public_key = self.private_key.public_key()
+            # Send pubk to db.
+            self.send_public_key_to_database(user)
+            # No authentication is given per default to new devices.
+        else:
+            self.public_key = self.private_key.public_key()
+            self.get_device() # Set up member variable device.
 
-    def create_privatekey(self):
+    def create_privatekey(self, user):
         from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives.asymmetric import rsa
         private_key = rsa.generate_private_key(
@@ -44,39 +44,55 @@ class Command():
             encryption_algorithm=serialization.NoEncryption()
         )
 
-        with open(f'{self.user.get("id")}_private_key.pem', 'wb') as f:
+        with open(f'{user.get("id")}_private_key.pem', 'wb') as f:
             f.write(pem)
         
         return private_key
 
-    def get_privatekey(self):
+    def get_privatekey(self, user):
         from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives import serialization
         try:
-            with open(f'{self.user.get("id")}_private_key.pem', "rb") as key_file:
+            with open(f'{user.get("id")}_private_key.pem', "rb") as key_file:
                 private_key = serialization.load_pem_private_key(
                     key_file.read(),
                     password=None,
                     backend=default_backend()
                 )
-            return private_key, "success"
+            return private_key
         except FileNotFoundError:
-            return None, "File not found"
+            return None
 
-    def send_publickey_to_database(self, publickey):
-        from cryptography.hazmat.primitives import serialization
+    def get_device(self):
+        """Get a device object."""
+        if not self.device:
+            try:
+                with open("device_id.txt", "r") as device_id:
+                    self.device = Table.get("Device", {"device_id": int(device_id.read())})
+            except FileNotFoundError:
+                # Generate new device.
+                self.device = dm.manager.generate_device()
+                # Save new device id to file.
+                with open("device_id.txt", "w") as dfile:
+                    dfile.write(str(self.device.get("device_id")))
 
-        pem = publickey.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        return self.device
+
+    def send_public_key_to_database(self, user):
+        # Send the public key from current user.
+        pem = self.public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
 
+        status = dm.manager.create_device_user_relation(pem.decode(), user, self.get_device()) 
+        print(status)
 
-    def encrypt_message(self,message):
+    def encrypt_message(self,message,user):
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.asymmetric import padding
 
-        public_key = self.get_privatekey().public_key()
+        public_key = self.get_privatekey(user).public_key()
 
         encrypted = public_key.encrypt(
             message,
@@ -88,12 +104,12 @@ class Command():
         )
         return encrypted
     
-    def decryptmessage(self,encrypted_message):
+    def decryptmessage(self,encrypted_message,user):
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.asymmetric import padding
 
         
-        private_key = self.get_privatekey()
+        private_key = self.get_privatekey(user)
 
         original_message = private_key.decrypt(
             encrypted_message,
@@ -104,6 +120,28 @@ class Command():
             )
         )
         return original_message
+
+
+class Command():
+    def __init__(self):
+        self.user = None
+        self.opened_conversation=None
+        self.encryption = Encryption()
+        # A Dictionary with the command(s) the user can write as the key and the function it calls as the value.
+        self.commands={
+            "help":self.help,"startconversation":self.start_conversation,  "openconversation":self.open_conversation,
+            "adduser":self.add_user, "logout":self.logout, "sendmessage":self.send_message, "readmessages":self.read_messages,
+            "printuser":self.print_user, "sendfriendrequest":self.send_friend_request, "friendrequests":self.friend_requests,
+            "friends": self.friends, "makeshortcut":self.make_shortcut,"shortcuts":self.shortcuts,"members":self.members,
+            "setnickname":self.set_nickname, "changename":self.change_name,
+        }
+        try:
+            with open("shortcuts.txt", "r") as f:
+                self.user_shortcuts=json.loads(f.read())
+        except FileNotFoundError:
+            self.user_shortcuts={}
+    
+    def command_format(self, command): return command.replace(" ", "").replace("_", "").lower()
 
     def list_format(self, l):
         s = ""
@@ -146,8 +184,8 @@ class Command():
         #check if it's the same
         if confirmpassword==password:
             #create a salt (a 10 digit number )
-            salt=str(r.randint(0,9999999999))
-            #add zeros at the begining 
+            salt=str(r.randint(0,10**10))
+            #add zeros at the beginning 
             salt="0"*(10-len(salt)) + salt
             hashed=hashlib.sha256((password + salt).encode()).hexdigest()
             #useses the create user function from the database manager 
@@ -414,6 +452,8 @@ class Command():
                 return False
             else:
                 print("Try again")
+        
+        self.encryption.setup_encryption(self.user)
         return True
 
 commands = Command()

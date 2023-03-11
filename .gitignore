@@ -1,2 +1,4 @@
 p_env/
 __pycache__/
+*private_key*
+device_id.txt

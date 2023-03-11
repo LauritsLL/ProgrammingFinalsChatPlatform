@@ -1,6 +1,5 @@
 import mysql.connector
 from mysql.connector import Error
-import hashlib
 import Table
 import random as r
 
@@ -111,7 +110,7 @@ class DbManager():
             id INT NOT NULL,
             sender INT NOT NULL,
             conversation INT NOT NULL,
-            text VARCHAR(256) NOT NULL,
+            text VARCHAR(1000) NOT NULL,
             PRIMARY KEY (id),
             FOREIGN KEY (sender) REFERENCES User(id),
             FOREIGN KEY (conversation) REFERENCES Conversation(id)
@@ -121,22 +120,32 @@ class DbManager():
         tables["Devicetable"]= """
         CREATE TABLE IF NOT EXISTS Device (
             id INT NOT NULL,
-            user INT NOT NULL,
-            publickey VARCHAR(1700) NOT NULL,
-            PRIMARY KEY (id),
-            FOREIGN KEY (user) REFERENCES User(id),
+            device_id BIGINT UNIQUE NOT NULL,
+            PRIMARY KEY (id)
         ) ENGINE = InnoDB
         """
 
-        tables["EncryptedMessagestable"]= """
-        CREATE TABLE IF NOT EXISTS EncryptedMessages (
+        tables["DeviceUserRelationtable"]= """
+        CREATE TABLE IF NOT EXISTS DeviceUserRelation (
+            id INT NOT NULL,
+            user INT NOT NULL,
+            device INT NOT NULL,
+            publickey VARCHAR(10000) NOT NULL,
+            PRIMARY KEY (id),
+            FOREIGN KEY (user) REFERENCES User(id),
+            FOREIGN KEY (device) REFERENCES Device(id)
+        ) ENGINE = InnoDB
+        """       
+
+
+        tables["EncryptedMessagetable"]= """
+        CREATE TABLE IF NOT EXISTS EncryptedMessage (
             id INT NOT NULL,
             message INT NOT NULL,
             device INT NOT NULL,
-            text VARCHAR(256) NOT NULL,
+            text VARCHAR(1000) NOT NULL,
             PRIMARY KEY (id),
-            FOREIGN KEY (user) REFERENCES User(id),
-            FOREIGN KEY (message) REFERENCES Message(id),
+            FOREIGN KEY (message) REFERENCES Message(id)
         ) ENGINE = InnoDB
         """
 
@@ -224,7 +233,7 @@ class DbManager():
                 {"username":username,"salt":salt, "password":hashed,"firstname":firstname,"lastname":lastname})
         else:
             return None
-
+    
     def set_nickname(self, user, opened_conversation, nickname):
         """Set new nickname for current opened conversation."""
         userconv = Table.get("UserConversationRelation", {"conversation": opened_conversation.get("id"), "user": user.get("id")})
@@ -432,8 +441,19 @@ class DbManager():
         request = Table.get("Friends", {"id": request.get("id")})
         request.delete() # Declined.
         return f"Friend request was declined."
+    
+    def generate_device(self):
+        """Generate new device and save to DB."""
+        # Random number 16 ciphers.
+        device_id = r.randint(0, 10**16)
+        while Table.get("Device", {"device_id": device_id}):
+            device_id = r.randint(0,10**16)
 
-    def create_device(self, publickey, user, device_id=""):
-        Table.Table("Device",{"publickey":publickey,"device":device_id,"user":user.get("id")})
+        # Unique id found.
+        return Table.Table("Device", {"device_id": device_id}) 
+
+    def create_device_user_relation(self, publickey_str, user, device):
+        Table.Table("DeviceUserRelation",{"publickey":publickey_str,"device":device.get("id"),"user":user.get("id")})
+        return "Successful creation of Device-User relation. Eller noget"
 
 manager = DbManager()
