@@ -4,7 +4,7 @@ import random as r
 
 import database_manager as dm
 import Table
-
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
 class Encryption():
@@ -69,13 +69,15 @@ class Encryption():
             try:
                 with open("device_id.txt", "r") as device_id:
                     self.device = Table.get("Device", {"device_id": int(device_id.read())})
+                    if not self.device:
+                        self.device = dm.manager.generate_device(int(device_id.read()))
             except FileNotFoundError:
                 # Generate new device.
                 self.device = dm.manager.generate_device()
                 # Save new device id to file.
                 with open("device_id.txt", "w") as dfile:
                     dfile.write(str(self.device.get("device_id")))
-
+        print(self.device)
         return self.device
 
     def send_public_key_to_database(self, user):
@@ -88,22 +90,32 @@ class Encryption():
         status = dm.manager.create_device_user_relation(pem.decode(), user, self.get_device()) 
         print(status)
 
-    def encrypt_message(self,message,user):
+    def read_public_key(self, public_key):
+        print(public_key)
+        public_key = serialization.load_pem_public_key(
+            public_key,
+            backend=default_backend()
+        )
+        return public_key
+
+    def encrypt_message(self, message, conversation):
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.asymmetric import padding
-
-        public_key = self.get_privatekey(user).public_key()
-
-        encrypted = public_key.encrypt(
-            message,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-        return encrypted
-    
+        for user in conversation.get("users"):
+            message_obj = dm.manager.create_message(user, conversation)
+            for dur in dm.manager.get_devices(user):
+                print(dur)
+                public_key = self.read_public_key(dur.get("public_key"))
+                encrypted = public_key.encrypt(
+                    message,
+                    padding.OAEP(
+                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                        algorithm=hashes.SHA256(),
+                        label=None
+                    )
+                )
+                dm.manager.create_encrypted_message(encrypted,message_obj,dur.get("device"))    
+               
     def decryptmessage(self,encrypted_message,user):
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.asymmetric import padding
@@ -235,7 +247,7 @@ class Command():
         # temp = Table.get("Conversation",{"name":conversationToOpen})
         # ucrel = temp if temp and not ucrel else ucrel
 
-        con, status = dm.manager.open_conversation(conversationToOpen)
+        con, status = dm.manager.open_conversation(conversationToOpen,self.user)
         print(status)
         if con != None:
             self.opened_conversation = con
@@ -247,11 +259,14 @@ class Command():
             print("no conversation opened")
             return
         
-        print(f"Send message in {self.opened_conversation.get('nickname')}")
+        if self.opened_conversation.get("nickname"):
+            print(f"Send message in {self.opened_conversation.get('nickname')}")
+        else:
+            print(f"Send message in {self.opened_conversation.get('name')}")
         #get a message from the user
         message=input("> ")
         #creates a message obj with the user as the sender the opened_conversation as the conversation and a message
-        dm.manager.create_message(self.user, self.opened_conversation, message)
+        self.encryption.encrypt_message(message, self.opened_conversation)
 
     def print_user(self): # DEBUG/TESTING
         print(self.user)
@@ -263,7 +278,7 @@ class Command():
             print("No conversation opened")
             return
         #gets all the messages for the opened_conversation
-        messages=dm.manager.get_messages(self.opened_conversation)
+        messages=dm.manager.get_messages(self.opened_conversation, self.encryption.get_device())
         #returns if there are no messages and prints no message in this conversation
         if messages == None: 
             print("No messages in this conversation")
@@ -273,8 +288,9 @@ class Command():
             #foreach
             #if the messages sender is the login in user write Me:{message} else write {sender}:{message}
             # Sender is converted to a username instead for an id (In DB Manager -> get_messages())
+
             if msg.get("sender") == self.user.get("username"):
-                print(f"You: {msg.get('text')}")
+                print(f"You: {self.encryption.decryptmessage(msg.get('text'),self.user)}")
             else:
                 print(f"{msg.get('sender')}: {msg.get('text')}")
 

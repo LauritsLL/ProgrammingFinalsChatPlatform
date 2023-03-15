@@ -3,6 +3,9 @@ from mysql.connector import Error
 import Table
 import random as r
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
+
 
 class DbManager():
     def __init__(self):
@@ -130,13 +133,13 @@ class DbManager():
             id INT NOT NULL,
             user INT NOT NULL,
             device INT NOT NULL,
-            publickey VARCHAR(10000) NOT NULL,
+            public_key VARCHAR(10000) NOT NULL,
+            authenticated BOOL NOT NULL,
             PRIMARY KEY (id),
             FOREIGN KEY (user) REFERENCES User(id),
             FOREIGN KEY (device) REFERENCES Device(id)
         ) ENGINE = InnoDB
         """       
-
 
         tables["EncryptedMessagetable"]= """
         CREATE TABLE IF NOT EXISTS EncryptedMessage (
@@ -296,7 +299,7 @@ class DbManager():
         except Error as e:
             print(e)
 
-    def open_conversation(self,conversationToOpen,):
+    def open_conversation(self,conversationToOpen,user):
         if conversationToOpen[0] == "#":
             try:
                 con_id=int(conversationToOpen)
@@ -310,7 +313,7 @@ class DbManager():
             except ValueError:
                 return None, "using '#' means its a id and it should be followed by an integer"
             
-        ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":self.user.get("id")},filtered=True)
+        ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":user.get("id")},filtered=True)
         conversations = Table.get("Conversation",{"name":conversationToOpen},filtered=True)
         for conversation in conversations:
             ucrel.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":self.user.get("id")}))
@@ -328,7 +331,6 @@ class DbManager():
                     with_user=Table.get("User",{"id":userconversationrelation.get("user")})
                     users.append(with_user)
                 opened_conversation.set(commit=False, users=users)
-                print("OPENED CONVERS:",opened_conversation)
             else:
                 #this is a class do something
                 pass
@@ -375,16 +377,26 @@ class DbManager():
         
         return f"{username} is added to the conversation"
                 
-    def create_message(self, user, conversation, message):
-        Table.Table("Message", {"sender":user.get("id"), "conversation":conversation.get("id"), "text":str(message)})
-        
-    def get_messages(self, conversation):
+    def create_message(self, user, conversation):
+        return Table.Table("Message", {"sender":user.get("id"), "conversation":conversation.get("id")})
+
+    def get_devices(self, user):
+        return Table.get("DeviceUserRelation",{"user":user.get("id")},filtered=True)
+
+    def create_encrypted_message(self,encrypted,message_obj,device_id):
+        Table.Table("EncryptedDeviceMessageRelation", {"device":device_id,"message":message_obj.get("id"),"text":encrypted})
+
+    def get_messages(self, conversation, device):
         messages = Table.get("Message", {'conversation': conversation.get('id')}, filtered=True)
         if messages is None: return
         for i, msg in enumerate(messages):
             username = Table.get("User", {'id': msg.get("sender")}).get("username")
+            print(msg,device)
+            obj=Table.get("EncryptedDeviceMessageRelation",{"message":msg.get("id"),"device":device.get("id")})
+            print(obj)
+            text=obj.get("text")
             # Creates unconventional table with username being string and not an id reference (An deletes unused fields) for convenience with main.
-            messages[i]=Table.Table("Message",{"id":msg.get("id"),"sender":username,"text":msg.get("text")},commit=False)
+            messages[i]=Table.Table("Message",{"id":msg.get("id"),"sender":username,"text":text},commit=False)
 
         return messages
 
@@ -442,18 +454,29 @@ class DbManager():
         request.delete() # Declined.
         return f"Friend request was declined."
     
-    def generate_device(self):
+    def generate_device(self, device_id=-1):
         """Generate new device and save to DB."""
-        # Random number 16 ciphers.
-        device_id = r.randint(0, 10**16)
-        while Table.get("Device", {"device_id": device_id}):
-            device_id = r.randint(0,10**16)
-
+        #generate an id if non where given
+        if device_id==-1:
+            # Random number 16 ciphers.
+            device_id = r.randint(0, 10**16)
+            while Table.get("Device", {"device_id": device_id}):
+                device_id = r.randint(0,10**16)
+        
         # Unique id found.
         return Table.Table("Device", {"device_id": device_id}) 
 
     def create_device_user_relation(self, publickey_str, user, device):
-        Table.Table("DeviceUserRelation",{"publickey":publickey_str,"device":device.get("id"),"user":user.get("id")})
+        Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id")})
         return "Successful creation of Device-User relation. Eller noget"
+    
+    def get_public_key(self, user):
+        """Get public key from selected user."""
+        uid = user.get("id")
+
+        public_key = Table.get("DeviceUserRelation", {"user": uid}).get("public_key")
+        public_key = load_pem_public_key(public_key, default_backend())
+        print(public_key)
+        
 
 manager = DbManager()
