@@ -15,7 +15,7 @@ def get_column_names(tablename):
         AND TABLE_NAME='{tablename}';
     """
     columnnames = dm.manager.execute_read_query(cmd)
-
+    columnnames = [col[0] for col in columnnames]
     return columnnames
 
 def get(tablename, flags, column="all", filtered=False):
@@ -38,7 +38,6 @@ def get(tablename, flags, column="all", filtered=False):
         for row in result:
             data={}
             for i,columnname in enumerate(columnnames):
-                columnname = columnname[0]
                 data[columnname]=row[i]
             tempdata={}
             if column != "all":
@@ -65,7 +64,6 @@ def get(tablename, flags, column="all", filtered=False):
     # Match up corresponding table columns with given data.
     flags={}
     for i,columnname in enumerate(columnnames):
-        columnname = columnname[0]
         flags[columnname]=result[i]
     
     # If specified columns have been set, splitted by commas, match them up and forget rest of columns gotten.
@@ -121,7 +119,7 @@ class Table():
                     query+=f" {k} = {v},"
             # Remove last comma.
             query = query[:-1]
-            query+=f" WHERE id = {self.data['id']}"
+            query+=f" WHERE id = {self.data.get('id')}"
             dm.manager.execute_query(query)
         else:
             # Save specific fields.
@@ -136,7 +134,7 @@ class Table():
                     query+=f" {k} = {v},"
             # Remove last comma.
             query = query[:-1]
-            query+=f" WHERE id = {self.data['id']}"
+            query+=f" WHERE id = {self.data.get('id')}"
             dm.manager.execute_query(query)
                 
     

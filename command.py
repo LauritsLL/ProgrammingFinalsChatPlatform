@@ -90,12 +90,8 @@ class Encryption():
         status = dm.manager.create_device_user_relation(pem.decode(), user, self.get_device()) 
         print(status)
 
-    def read_public_key(self, public_key):
-        print(public_key)
-        public_key = serialization.load_pem_public_key(
-            public_key,
-            backend=default_backend()
-        )
+    def read_public_key(self, public_key: str):
+        public_key = serialization.load_pem_public_key(public_key.encode(), default_backend())
         return public_key
 
     def encrypt_message(self, message, conversation):
@@ -104,10 +100,9 @@ class Encryption():
         for user in conversation.get("users"):
             message_obj = dm.manager.create_message(user, conversation)
             for dur in dm.manager.get_devices(user):
-                print(dur)
                 public_key = self.read_public_key(dur.get("public_key"))
                 encrypted = public_key.encrypt(
-                    message,
+                    message.encode(),
                     padding.OAEP(
                         mgf=padding.MGF1(algorithm=hashes.SHA256()),
                         algorithm=hashes.SHA256(),

@@ -146,7 +146,7 @@ class DbManager():
             id INT NOT NULL,
             message INT NOT NULL,
             device INT NOT NULL,
-            text VARCHAR(1000) NOT NULL,
+            text VARBINARY(1000) NOT NULL,
             PRIMARY KEY (id),
             FOREIGN KEY (message) REFERENCES Message(id)
         ) ENGINE = InnoDB
@@ -161,8 +161,7 @@ class DbManager():
             PRIMARY KEY (id),
             FOREIGN KEY (user) REFERENCES User(id),
             FOREIGN KEY (conversation) REFERENCES Conversation(id)
-        ) ENGINE = InnoDB
-        """
+        ) ENGINE = InnoDB """
             
         tables["ClassILAttributes"] = """
         CREATE TABLE IF NOT EXISTS ClassILAttributes (
@@ -467,7 +466,10 @@ class DbManager():
         return Table.Table("Device", {"device_id": device_id}) 
 
     def create_device_user_relation(self, publickey_str, user, device):
-        Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id")})
+        if Table.get("DeviceUserRelation", {"user": user.get("id")}):
+            Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": 0})
+        else:
+            Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": 1})
         return "Successful creation of Device-User relation. Eller noget"
     
     def get_public_key(self, user):
