@@ -35,6 +35,26 @@ class DbManager():
         
         tables={}
 
+        tables["IdsTable"] = """
+        CREATE TABLE IF NOT EXISTS Ids (
+            id INT NOT NULL AUTO_INCREMENT,
+            Teacher_next_id INT NOT NULL DEFAULT 1,
+            ILUser_next_id INT NOT NULL DEFAULT 1,
+            User_next_id INT NOT NULL DEFAULT 1,
+            Friends_next_id INT NOT NULL DEFAULT 1,
+            Class_next_id INT NOT NULL DEFAULT 1,
+            Conversation_next_id INT NOT NULL DEFAULT 1,
+            TeacherConversationRelation_next_id INT NOT NULL DEFAULT 1,
+            Message_next_id INT NOT NULL DEFAULT 1,
+            Device_next_id INT NOT NULL DEFAULT 1,
+            DeviceUserRelation_next_id INT NOT NULL DEFAULT 1,
+            EncryptedDeviceMessageRelation_next_id INT NOT NULL DEFAULT 1,
+            UserConversationRelation_next_id INT NOT NULL DEFAULT 1,
+            ClassILAttributes_next_id INT NOT NULL DEFAULT 1,
+            PRIMARY KEY (id)
+        ) ENGINE = InnoDB
+        """
+
         tables["Teachertable"]= """
         CREATE TABLE IF NOT EXISTS Teacher ( 
             id INT NOT NULL,
@@ -97,8 +117,8 @@ class DbManager():
         ) ENGINE = InnoDB
         """
 
-        tables["TeacherConversationtable"]= """
-        CREATE TABLE IF NOT EXISTS TeacherConversation (
+        tables["TeacherConversationRelationtable"]= """
+        CREATE TABLE IF NOT EXISTS TeacherConversationRelation (
             id INT NOT NULL,
             conversation INT NOT NULL,
             teacher INT NOT NULL, 
@@ -113,7 +133,6 @@ class DbManager():
             id INT NOT NULL,
             sender INT NOT NULL,
             conversation INT NOT NULL,
-            text VARCHAR(1000) NOT NULL,
             PRIMARY KEY (id),
             FOREIGN KEY (sender) REFERENCES User(id),
             FOREIGN KEY (conversation) REFERENCES Conversation(id)
@@ -139,13 +158,13 @@ class DbManager():
             FOREIGN KEY (user) REFERENCES User(id),
             FOREIGN KEY (device) REFERENCES Device(id)
         ) ENGINE = InnoDB
-        """       
-
-        tables["EncryptedMessagetable"]= """
-        CREATE TABLE IF NOT EXISTS EncryptedMessage (
+        """
+        
+        tables["EncryptedDeviceMessageRelationtable"]= """
+        CREATE TABLE IF NOT EXISTS EncryptedDeviceMessageRelation (
             id INT NOT NULL,
             message INT NOT NULL,
-            device INT NOT NULL,
+            deviceuserrelation INT NOT NULL,
             text VARBINARY(1000) NOT NULL,
             PRIMARY KEY (id),
             FOREIGN KEY (message) REFERENCES Message(id)
@@ -163,7 +182,7 @@ class DbManager():
             FOREIGN KEY (conversation) REFERENCES Conversation(id)
         ) ENGINE = InnoDB """
             
-        tables["ClassILAttributes"] = """
+        tables["ClassILAttributestable"] = """
         CREATE TABLE IF NOT EXISTS ClassILAttributes (
             id INT NOT NULL,
             ILuserid INT NOT NULL,
@@ -171,11 +190,16 @@ class DbManager():
             PRIMARY KEY (id),
             FOREIGN KEY (ILuserid) REFERENCES ILUser(id),
             FOREIGN KEY (class) REFERENCES Class(id)
+
         ) ENGINE = InnoDB
         """
         
         for v in tables.values():
             self.execute_query(v)
+        
+        # Set up id chain for all tables...
+        if not Table.get("Ids", {"id":1}):
+            self.execute_query("INSERT INTO Ids () VALUES ()")
     
     def create_connection(self, host_name, username, user_password, db_name=""):
         try:
@@ -379,29 +403,42 @@ class DbManager():
     def create_message(self, user, conversation):
         return Table.Table("Message", {"sender":user.get("id"), "conversation":conversation.get("id")})
 
-    def get_devices(self, user):
+    def get_device_user_rel(self, user):
         return Table.get("DeviceUserRelation",{"user":user.get("id")},filtered=True)
 
-    def create_encrypted_message(self,encrypted,message_obj,device_id):
-        Table.Table("EncryptedDeviceMessageRelation", {"device":device_id,"message":message_obj.get("id"),"text":encrypted})
+    def create_encrypted_message(self,encrypted,message_obj,deviceuserrel_id):
+        # encrypted = str(encrypted)[1:].replace("'", "\\'").replace('"', '\\"')
+        cursor = self.connection.cursor()
+        query = """
+        INSERT INTO EncryptedDeviceMessageRelation (id, deviceuserrelation, message, text)
+        VALUES (%s, %s, %s, %s)
+        """
 
-    def get_messages(self, conversation, device):
+        data = (Table.get_id("EncryptedDeviceMessageRelation"),deviceuserrel_id, message_obj.get("id"), encrypted)
+        try:
+            cursor.execute(query, data)
+            self.connection.commit()
+            print("Query executed successfully")
+        except Error as e:
+            print(f"The error '{e}' occurred")
+
+    def get_messages(self, conversation, user, device):
         messages = Table.get("Message", {'conversation': conversation.get('id')}, filtered=True)
         if messages is None: return
+        deviceuserrel = Table.get("DeviceUserRelation", {"user":user.get("id"),"device":device.get("id")})
         for i, msg in enumerate(messages):
             username = Table.get("User", {'id': msg.get("sender")}).get("username")
-            print(msg,device)
-            obj=Table.get("EncryptedDeviceMessageRelation",{"message":msg.get("id"),"device":device.get("id")})
-            print(obj)
-            text=obj.get("text")
+            # Get specific encrypted message from user.
+            obj=Table.get("EncryptedDeviceMessageRelation",{"message":msg.get("id"),"deviceuserrelation":deviceuserrel.get("id")})
+            text=obj.get("text") # Get encrypted bytes.
             # Creates unconventional table with username being string and not an id reference (An deletes unused fields) for convenience with main.
-            messages[i]=Table.Table("Message",{"id":msg.get("id"),"sender":username,"text":text},commit=False)
+            messages[i]=Table.Table("Message",{"id":msg.get("id"),"sender":username,"conversation":conversation.get("id"), "text":text},commit=False)
 
         return messages
 
     def friend_request(self, username, user):
         if username == user.get("username"):
-            return "ARE U SO SAD YOU WANT TO FRIEND REQUEST YOURSELF? ARE YOU SHITTING YOUR PANTS AT YOUR MOM'S HOME??! GET A F'IN LIFE!"
+            return "ARE U SO SAD YOU WANT TO FRIEND REQUEST YOURSELF? ARE YOU SH*TT*NG YOUR PANTS AT YOUR MOM'S HOME??! GET A F'IN LIFE!"
         user_to_request = Table.get("User", {'username': username})
         if not user_to_request:
             return "User not found"

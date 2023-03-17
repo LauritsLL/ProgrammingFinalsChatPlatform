@@ -6,6 +6,8 @@ import sys
 
 typeswithquotes=[type("")]
 
+
+
 def get_column_names(tablename):
     """Return column names of specified table."""
     cmd = f"""
@@ -78,22 +80,19 @@ def get(tablename, flags, column="all", filtered=False):
     return Table(tablename, data, commit=False)
 
 
+def get_id(tablename): 
+    id = dm.manager.execute_read_query(f"SELECT {tablename}_next_id FROM Ids WHERE id = 1")[0][0]
+    dm.manager.execute_query(f"UPDATE Ids SET {tablename}_next_id = {id+1} WHERE id = 1")
+    return id
 
 class Table():
     def __init__(self, tablename, data, commit=True):
         self.tablename=tablename
         self.data=data
+ 
         
         if commit:
-            i=0
-            # Get number of records in table i.e. first unused id.
-            while True:
-                if get(tablename,{"id":i}):
-                    i+=1
-                else:
-                    break
-            self.data["id"]=i
-            
+            self.data["id"]=get_id(tablename)
             query=f"INSERT INTO {tablename} ("
             for k,v in self.data.items():
                 query+=f"{k},"
@@ -104,7 +103,7 @@ class Table():
                 else:
                     query+=f"{v},"
             query=query[0:-1] + ");"
-
+            # print(query)
             dm.manager.execute_query(query)
     
     def save(self, fields={}):
@@ -136,8 +135,7 @@ class Table():
             query = query[:-1]
             query+=f" WHERE id = {self.data.get('id')}"
             dm.manager.execute_query(query)
-                
-    
+                 
     def delete(self):
         dm.manager.execute_query(f"DELETE FROM {self.tablename} WHERE id={self.data['id']}")
     
