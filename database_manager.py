@@ -3,23 +3,27 @@ from mysql.connector import Error
 import Table
 import random as r
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.serialization import load_pem_public_key
+from DbLog import DbLog
 
+WRITE_LOG = True
+DEBUG_PRINT = False
 
-class DbManager():
+class DbManager(DbLog):
     def __init__(self):
+        super(DbManager, self).__init__()
         self.host_name="localhost"
         self.username="root"
         self.user_password=""
         self.db_name="chatplatform"
         self.connection = None
+        self.write_to_file = WRITE_LOG
+        self.debug_print = DEBUG_PRINT
 
     def list_format(self, l):
         s = ""
         for i in range(len(l)):
             s += l[i] + (" | " if not i+1 == len(l) else "")
-        print(s)
+        self.log(s)
 
     def setup(self):
         self.create_connection(self.host_name, self.username, self.user_password)
@@ -211,16 +215,16 @@ class DbManager():
                         )
 
         except Error as e:
-            print(f"The error '{e}' occurred")
+            self.log(f"The error '{e}' occurred", err=True, reason="Couldn't connect to database!")
 
     def execute_query(self, query):
         cursor = self.connection.cursor()
         try:
             cursor.execute(query)
             self.connection.commit()
-            print("Query executed successfully")
+            self.log("Query executed successfully", reason=f"DB Query \"{query.split()[0]}\"")
         except Error as e:
-            print(f"The error '{e}' occurred")
+            self.log(f"The error '{e}' occurred", err=True, reason=f"DB Query \"{query.split()[0]}\"")
 
     def execute_read_query(self, query):
         cursor = self.connection.cursor()
@@ -228,13 +232,14 @@ class DbManager():
         try:
             cursor.execute(query)
             result = cursor.fetchall()
+            self.log("Query executed successfully", reason=f"DB Query \"{query.split()[0]}\"")
             return result
         except Error as e:
-            print(f"The error '{e}' occurred")
+            self.log(f"The error '{e}' occurred", err=True, reason=f"DB Query \"{query.split()[0]}\"")
 
     def authenticate_user(self, username, hashed):
         user = Table.get('User', {'username': username})
-        print(user)
+        self.log(user, reason="Authentication")
 
         if user is None: return None
         else:
@@ -292,9 +297,11 @@ class DbManager():
         else: 
             # Check that username is befriended.
             other_user = Table.get("User", {"username": username})
-            if other_user is None: print("No friends found with that username."); return
+            if other_user is None:
+                self.log("No friends found with that username.", reason=f"Create conversation with user '{username}'")
+                return
             if not self.is_friends_with(user, other_user):
-                print("You are not friends with this user yet or the user does not exist.")
+                self.log("You are not friends with this user yet or the user does not exist.", reason=f"Create conversation with user '{username}'")
             else:
                 name = f"{user.get('username')} and {username}"
                 con_id=r.randint(0,99999)
@@ -332,7 +339,7 @@ class DbManager():
                         status="Conversation not found"
                     return conversation, status
                 except ValueError:
-                    return None, "using '#' means its a id and it should be followed by an integer (Whole number)."
+                    return None, "Using '#' means its a id and it should be followed by an integer (Whole number)."
             
         ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":user.get("id")},filtered=True)
         conversations = Table.get("Conversation",{"name":conversationToOpen},filtered=True)
@@ -340,7 +347,7 @@ class DbManager():
             ucrel.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")}))
         
         if len(ucrel) > 1:
-            print("More than one conversation with that name")
+            return None,"More than one conversation with that name"
         elif len(ucrel) != 0:
             ucrel = ucrel[0] # Will always be one element.
             conversation=Table.get("Conversation",{'id': ucrel.get("conversation")})
@@ -355,7 +362,7 @@ class DbManager():
             else:
                 #this is a class do something TODO
                 pass
-            return opened_conversation, "success"
+            return opened_conversation, "Success!"
         else:
             return None,"Conversation not found"
 
@@ -421,9 +428,9 @@ class DbManager():
             cursor = self.connection.cursor()
             cursor.execute(query, data)
             self.connection.commit()
-            print("Query executed successfully")
+            self.log("Query executed successfully", reason="Create encrypted message")
         except Error as e:
-            print(f"The error '{e}' occurred")
+            self.log(f"The error '{e}' occurred", err=True, reason="Create encrypted message")
     
     def get_encrypted_messages_current_conversation(self, dur_specific_device, opened_conversation):
         """Encrypt messages for a newly added user."""
@@ -522,15 +529,6 @@ class DbManager():
             Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": 0})
         else:
             Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": 1})
-        return "Successful creation of Device-User relation. Eller noget"
-    
-    def get_public_key(self, user):
-        """Get public key from selected user."""
-        uid = user.get("id")
-
-        public_key = Table.get("DeviceUserRelation", {"user": uid}).get("public_key")
-        public_key = load_pem_public_key(public_key, default_backend())
-        print(public_key)
-        
+        return "Successful creation of Device-User relation. Eller noget." # TODO: Check if success?
 
 manager = DbManager()

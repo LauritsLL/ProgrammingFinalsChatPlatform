@@ -1,6 +1,8 @@
 import json
 import hashlib
 import random as r
+from rich import print
+import rich
 
 import database_manager as dm
 import Table
@@ -10,7 +12,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
-
 import base64
 
 

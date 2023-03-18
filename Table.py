@@ -1,11 +1,11 @@
 import mysql.connector
 from mysql.connector import Error
-import database_manager as dm
-
 import sys
 
-typeswithquotes=[type("")]
+import database_manager as dm
+from DbLog import DbLog
 
+typeswithquotes=[type("")]
 
 
 def get_column_names(tablename):
@@ -89,8 +89,7 @@ class Table():
     def __init__(self, tablename, data, commit=True):
         self.tablename=tablename
         self.data=data
- 
-        
+
         if commit:
             self.data["id"]=get_id(tablename)
             query=f"INSERT INTO {tablename} ("
@@ -103,7 +102,6 @@ class Table():
                 else:
                     query+=f"{v},"
             query=query[0:-1] + ");"
-            # print(query)
             dm.manager.execute_query(query)
     
     def save(self, fields={}):
@@ -122,8 +120,6 @@ class Table():
             dm.manager.execute_query(query)
         else:
             # Save specific fields.
-            # Assume they exist in DB (Else LOGIC ERROR)
-            # TODO: Add check for existance. SHOULD WORK NOW
             for k,v in fields.items():
                 if k == "id" or not k in get_column_names(self.tablename):
                     continue
