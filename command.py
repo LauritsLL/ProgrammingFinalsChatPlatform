@@ -101,10 +101,14 @@ class Encryption():
 
         return public_key
 
-    def encrypt_message(self, message, conversation, sender):
+    def encrypt_message(self, message, conversation, sender, other_device_user_rel=None):
         message_obj = dm.manager.create_message(sender, conversation)
         for user in conversation.get("users"):
-            for deviceuserrel in dm.manager.get_device_user_rel(user):
+            if not other_device_user_rel:
+                deviceuserrel = dm.manager.get_device_user_rel(user)
+            else:
+                deviceuserrel = other_device_user_rel
+            for deviceuserrel in deviceuserrel:
                 public_key = self.read_public_key(deviceuserrel.get("public_key"))
                 
                 encrypted = public_key.encrypt(
@@ -115,15 +119,34 @@ class Encryption():
                         label=None
                     )
                 )
-                #print(self.decryptmessage(encrypted, sender))
-                dm.manager.create_encrypted_message(base64.b64encode(encrypted),message_obj,deviceuserrel.get("id"))    
+
+                dm.manager.create_encrypted_message(base64.b64encode(encrypted),message_obj,deviceuserrel.get("id"))
+    
+    def encrypt_existing_messages_for_other_user(self, encrypted_messages, other_user):
+        """Encrypt an existing message with other user's public key."""
+        other_user_device_rel = Table.get("DeviceUserRelation", {"user": other_user.get("id"), "device": self.device.get("id")})
+        public_key = self.read_public_key(other_user_device_rel.get("public_key"))
+        # Re-encrypt messages for new user.
+        for emsg in encrypted_messages:
+            decrypted = self.decrypt_message(emsg.get("text")) # FAIL ORRR?
+            message_obj = Table.get("Message", {"id": emsg.get("message")})
+            
+            encrypted = public_key.encrypt(
+                decrypted.encode(),
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
+
+            # Create new entry for other user.
+            dm.manager.create_encrypted_message(base64.b64encode(encrypted), message_obj, other_user_device_rel.get("id"))
                
-    def decryptmessage(self,encrypted_message):
+    def decrypt_message(self,encrypted_message):
         private_key = self.private_key
-        # with open(f"{user.get('id')}_private_key.pem", "rb") as f:
-        #     private_key = f.read()
-        # print(len(private_key), len(encrypted_message))
         if not private_key: return
+
         original_message = private_key.decrypt(
             base64.b64decode(encrypted_message),
             padding.OAEP(
@@ -139,7 +162,7 @@ class Encryption():
 class Command():
     def __init__(self):
         self.user = None
-        self.opened_conversation=None
+        self.opened_conversation=None # UNCONVENTIONAL TABLE WITH ADDITIONAL FIELDS: nickname
         self.encryption = Encryption()
         # A Dictionary with the command(s) the user can write as the key and the function it calls as the value.
         self.commands={
@@ -213,42 +236,33 @@ class Command():
 
     def open_conversation(self):
         """opens a conversation by setting the opened_conversation to a giving conversation"""
-        # print("If multiple conversation with same name are found, the first one in the list will be picked.")
-        # print("You can afterwards use 'setnickname' command to change name.") # NOT IMPLEMENTED YET
         #gets the name of the conversation to open
         conversationToOpen=input("Which conversation do you want to open: ")
-        if conversationToOpen[0:2] == "ls":
-            if conversationToOpen == "ls":
-                conversations = list(dm.manager.get_conversations(self.user))
-                for conversation in conversations:
-                    nickname = conversation.get("nickname")
-                    if nickname is not None:
-                        print(nickname)
-                    else:
-                        print(conversation.get("name"))
-                #call open_conversation again
-                self.open_conversation() # GRIMT ÆNDR!
-                return
-            elif conversationToOpen.replace(" ","").replace("_","") == "lsids":
-                conversations = dm.manager.get_conversations(self.user,get_ids=True)
-                print("name   nickname   id")
-                for conversation in conversations:
-                    con_id=conversation.get('con_id')
-                    print(f"{conversation.get('name')}   {conversation.get('nickname')}   #{'0'*(5-len(str(con_id)))}{con_id}")
-                #call open_conversation again
-                self.open_conversation() # GRIMT ÆNDR!
-                return
+        if conversationToOpen == "ls":
+            conversations = list(dm.manager.get_conversations(self.user))
+            for conversation in conversations:
+                ucrel = Table.get("UserConversationRelation", {"user": self.user.get("id"), "conversation": conversation.get("id")})
+                nickname = ucrel.get("nickname")
+                if nickname is not None:
+                    print(nickname)
+                else:
+                    print(conversation.get("name"))
+            #call open_conversation again
+            self.open_conversation() # GRIMT ÆNDR!
+            return
+        elif self.command_format(conversationToOpen) == "lsids":
+            conversations = dm.manager.get_conversations(self.user,get_ids=True)
+            print("name   nickname   id")
+            for conversation in conversations:
+                con_id=conversation.get('con_id')
+                print(f"{conversation.get('name')}   {conversation.get('nickname')}   #{'0'*(5-len(str(con_id)))}{con_id}")
+            #call open_conversation again
+            self.open_conversation() # GRIMT ÆNDR!
+            return
 
         if conversationToOpen == "back":
             return
         
-        # # Try getting conversation through nickname. (WILL WORK IF CREATING CONVERSATION IS RESTRICTED TO ONE CONVERSATION ONLY WITH ONE USER -
-        # # SUCH THAT IT IS ILLEGAL TO FOR EXAMPLE HAVE TWO CONVERSATIONS BETWEEN: l and burak )
-        # ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":self.user.get("id")})
-        # # Add conversations with the name also to ensure that one conversation with that name OR nickname was found (Else no conversation exist).
-        # temp = Table.get("Conversation",{"name":conversationToOpen})
-        # ucrel = temp if temp and not ucrel else ucrel
-
         con, status = dm.manager.open_conversation(conversationToOpen,self.user)
         print(status)
         if con != None:
@@ -292,9 +306,9 @@ class Command():
             # Sender is converted to a username instead for an id (In DB Manager -> get_messages())
 
             if msg.get("sender") == self.user.get("username"):
-                print(f"You: {self.encryption.decryptmessage(msg.get('text'))}")
+                print(f"You: {self.encryption.decrypt_message(msg.get('text'))}")
             else:
-                print(f"{msg.get('sender')}: {self.encryption.decryptmessage(msg.get('text'))}")
+                print(f"{msg.get('sender')}: {self.encryption.decrypt_message(msg.get('text'))}")
 
     def send_friend_request(self):
         """Creates a friend request obj with the loggedin user as the sender and a giving user"""
@@ -371,18 +385,23 @@ class Command():
         dm.manager.create_conversation(self.user,username)
 
     def add_user(self):
-        if self.opened_conversation == None:
+        if self.opened_conversation is None:
             print("No opened conversation")
             return
         
-
         username=input("Who do you want to add: ")
-        for _user in self.opened_conversation.get("users"):
-            if _user.get("username") == username:
-                print(f"{username} is already in this conversation")
+        for user in self.opened_conversation.get("users"):
+            if user.get("username") == username:
+                print(f"'{username}' is already in this conversation.")
                 break
         else:
-            status = dm.manager.add_user_to_conversation(self.user, self.opened_conversation, username)
+            user_added, status = dm.manager.add_user_to_conversation(self.user, self.opened_conversation, username)
+            if user_added:
+                dur_specific_device = dm.manager.get_device_user_rel(self.user, device_id=self.encryption.device.get("id"))[0] # Returned as list of one object only.
+                encrypted_msgs = dm.manager.get_encrypted_messages_current_conversation(dur_specific_device, self.opened_conversation)
+                # Re-encrypt messages for new user.
+                self.encryption.encrypt_existing_messages_for_other_user(encrypted_msgs,user_added)
+            
             print(status)
 
     def members(self):

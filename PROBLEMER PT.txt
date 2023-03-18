@@ -1,6 +1,7 @@
-1:
-Man kan lave flere samtaler med den samme, ene person. STORT PROBLEM
-TODO: MAKE IT SO THAT ANY CONVERSATION'S NICKNAME MUST BE UNIQUE WITH RESPECT TO NAME AND NICKNAME for the same user.
+2:
+TODO:
+Make some logic for classes and a group of students.
 
-2: 
+EKSTRA:
 kryptering:https://nitratine.net/blog/post/asymmetric-encryption-and-decryption-in-python/
+KUNNE HAVE BRUGT AES256: https://blog.boot.dev/cryptography/aes-256-cipher-python-cryptography-examples/

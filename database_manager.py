@@ -307,39 +307,37 @@ class DbManager():
                 Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":other_user.get("username"),"conversation":conversation.get("id")})
 
     def get_conversations(self, user, get_ids=False):
-        try:
-            ucrs = Table.get("UserConversationRelation",{"user":user.get("id")},filtered=True)
-            conversations=[]
-            for ucr in ucrs:
-                conversations.append(Table.get("Conversation",{"id":ucr.get("conversation")}))
+        ucrels = Table.get("UserConversationRelation",{"user":user.get("id")},filtered=True)
+        conversations=[]
+        # Get conversation objects for user.
+        for ucrel in ucrels:
+            conversations.append(Table.get("Conversation",{"id":ucrel.get("conversation")}))
+        
+        for conversation in conversations:
+            nickname = Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")}).get("nickname")
+            if get_ids or nickname != "":
+                conversation.set(nickname=nickname, commit=False)
 
-            for conversation in conversations:
-                nickname = Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")}).get("nickname")  
-                if get_ids or nickname != "":
-                    conversation.set(commit=False, nickname=nickname)
-
-            return conversations
-        except Error as e:
-            print(e)
+        return conversations
 
     def open_conversation(self,conversationToOpen,user):
-        if conversationToOpen[0] == "#":
-            try:
-                con_id=int(conversationToOpen)
-                conversation = Table.get("Conversation",{"con_id":con_id}) 
-                if conversation is not None:
-                    status="Conversation found"
-                else:
-                    status="Conversation not found"
-                return conversation, status
-            
-            except ValueError:
-                return None, "using '#' means its a id and it should be followed by an integer"
+        if conversationToOpen:
+            if conversationToOpen[0] == "#":
+                try:
+                    con_id=int(conversationToOpen)
+                    conversation = Table.get("Conversation",{"con_id":con_id}) 
+                    if conversation is not None:
+                        status="Conversation found"
+                    else:
+                        status="Conversation not found"
+                    return conversation, status
+                except ValueError:
+                    return None, "using '#' means its a id and it should be followed by an integer (Whole number)."
             
         ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":user.get("id")},filtered=True)
         conversations = Table.get("Conversation",{"name":conversationToOpen},filtered=True)
         for conversation in conversations:
-            ucrel.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":self.user.get("id")}))
+            ucrel.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")}))
         
         if len(ucrel) > 1:
             print("More than one conversation with that name")
@@ -355,60 +353,62 @@ class DbManager():
                     users.append(with_user)
                 opened_conversation.set(commit=False, users=users)
             else:
-                #this is a class do something
+                #this is a class do something TODO
                 pass
             return opened_conversation, "success"
         else:
             return None,"Conversation not found"
 
-    def add_user_to_conversation(self, _user, conversation, username):
-        user=Table.get("User",{"username":username})
-        if not self.is_friends_with(user,_user):
-            return f"you are not friends with {username}"
+    def add_user_to_conversation(self, current_user, conversation, username):
+        user_to_add=Table.get("User",{"username":username})
+        if not self.is_friends_with(current_user, user_to_add):
+            return None,f"You are not friends with '{username}'."
         # Enumerating through already added users to modify conversation name.
         name=""
         users = conversation.get("users")
-        for i,user2 in enumerate(users): # Curated list of users from relation.
+        for i,user in enumerate(users): # Curated list of users from relation.
             if i+1 == len(users):
-                name+=user2.get("username") + " and "
+                name+=user.get("username") + " and "
             else:
-                name+=user2.get("username") + ", " 
-        
+                name+=user.get("username") + ", " 
         name += username
 
-        Table.Table("UserConversationRelation",{"user":user.get("id"),"nickname":"","conversation":conversation.get("id")})
+        Table.Table("UserConversationRelation",{"user":user_to_add.get("id"),"nickname":"","conversation":conversation.get("id")})
         conversation.set(name=name)
-        conversation.data["users"].append(user)
+        conversation.data["users"].append(user_to_add)
         if len(users)==2:
             # Set the general name for conversation.
-            self.execute_query(f"UPDATE conversation SET name = '{name}' WHERE id = {conversation.get('id')}")
-            # Set nickname for all users in the conversation to ""
-            users=conversation.get("users")
+            conversation.set(name=name)
 
-            for user3 in users:
+            # Set nickname for all users in the conversation.
+            users=conversation.get("users")
+            for user in users:
                 nickname=""
                 unum=0
-                for user4 in users:
-                    if user4 != user3:
+                for user_enum in users:
+                    if user_enum != user:
                         if unum == 1:
-                            nickname+=f" and {user4.get('username')}"
+                            nickname+=f" and {user_enum.get('username')}"
                         else:
-                            nickname+=f"{user4.get('username')}"
+                            nickname+=f"{user_enum.get('username')}"
                         unum+=1
-                userconversationrelation = Table.get("UserConversationRelation", {"user":user3.get("id"),"conversation":conversation.get("id")})
+                userconversationrelation = Table.get("UserConversationRelation", {"user":user.get("id"),"conversation":conversation.get("id")})
                 userconversationrelation.set(nickname=nickname)
-        
-        return f"{username} is added to the conversation"
+
+        return user_to_add,f"'{username}' has been added to the conversation."
                 
     def create_message(self, user, conversation):
         return Table.Table("Message", {"sender":user.get("id"), "conversation":conversation.get("id")})
 
-    def get_device_user_rel(self, user):
-        return Table.get("DeviceUserRelation",{"user":user.get("id")},filtered=True)
+    def get_device_user_rel(self, user, device_id=0):
+        # Set device_id if relation for current device and user are wanted.
+        if not device_id:
+            return Table.get("DeviceUserRelation",{"user":user.get("id")},filtered=True)
+        else:
+            return Table.get("DeviceUserRelation", {"user":user.get("id"),"device":device_id}, filtered=True)
 
     def create_encrypted_message(self,encrypted,message_obj,deviceuserrel_id):
         # encrypted = str(encrypted)[1:].replace("'", "\\'").replace('"', '\\"')
-        cursor = self.connection.cursor()
         query = """
         INSERT INTO EncryptedDeviceMessageRelation (id, deviceuserrelation, message, text)
         VALUES (%s, %s, %s, %s)
@@ -416,11 +416,29 @@ class DbManager():
 
         data = (Table.get_id("EncryptedDeviceMessageRelation"),deviceuserrel_id, message_obj.get("id"), encrypted)
         try:
+            cursor = self.connection.cursor()
             cursor.execute(query, data)
             self.connection.commit()
             print("Query executed successfully")
         except Error as e:
             print(f"The error '{e}' occurred")
+    
+    def get_encrypted_messages_current_conversation(self, dur_specific_device, opened_conversation):
+        """Encrypt messages for a newly added user."""
+        # Get messages from synced, currently logged in user.
+        messages = Table.get("Message", {"conversation": opened_conversation.get("id")}, filtered=True)
+        encrypted_msgs = []
+        for msg in messages:
+            encrypted = Table.get("EncryptedDeviceMessageRelation", 
+                {"deviceuserrelation":dur_specific_device.get("id"), "message": msg.get("id")})
+            encrypted_msgs.append(encrypted)
+        
+        return encrypted_msgs
+
+    # def add_new_encrypted_message(self, encrypted, message_obj, deviceuserrel):
+    #     next_id = Table.get_id("EncryptedDeviceMessageRelation")
+    #     Table.Table("EncryptedDeviceMessageRelation", {"id": next_id, 
+    #         "message": message_obj.get("id"), "deviceuserrelation": deviceuserrel.get("id"), "text": encrypted})
 
     def get_messages(self, conversation, user, device):
         messages = Table.get("Message", {'conversation': conversation.get('id')}, filtered=True)
