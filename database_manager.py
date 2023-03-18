@@ -324,7 +324,7 @@ class DbManager():
         if conversationToOpen:
             if conversationToOpen[0] == "#":
                 try:
-                    con_id=int(conversationToOpen)
+                    con_id=int(conversationToOpen[1:]) # Cut # away
                     conversation = Table.get("Conversation",{"con_id":con_id}) 
                     if conversation is not None:
                         status="Conversation found"

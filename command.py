@@ -14,6 +14,10 @@ from cryptography.hazmat.primitives.asymmetric import padding
 import base64
 
 
+# STANDARD WHITESPACE ADJUSTMENT FOR PRINT FORMATTING.
+DEFAULT_WS_ADJ = 15
+
+
 class Encryption():
     """General-purpose class for encryption"""
     def __init__(self) -> None:
@@ -248,14 +252,14 @@ class Command():
                 else:
                     print(conversation.get("name"))
             #call open_conversation again
-            self.open_conversation() # GRIMT ÆNDR!
+            self.open_conversation() # TODO: GRIMT ÆNDR!
             return
         elif self.command_format(conversationToOpen) == "lsids":
             conversations = dm.manager.get_conversations(self.user,get_ids=True)
-            print("name   nickname   id")
+            print("{0: <{width}}{1: <{width}}{2: <{width}}".format('name','nickname','id', width=DEFAULT_WS_ADJ))
             for conversation in conversations:
                 con_id=conversation.get('con_id')
-                print(f"{conversation.get('name')}   {conversation.get('nickname')}   #{'0'*(5-len(str(con_id)))}{con_id}")
+                print("{0: <{width}}{1: <{width}}{2}{3}".format(conversation.get("name"), conversation.get("nickname"), '#' + '0'*(5-len(str(con_id))),con_id, width=DEFAULT_WS_ADJ))
             #call open_conversation again
             self.open_conversation() # GRIMT ÆNDR!
             return
