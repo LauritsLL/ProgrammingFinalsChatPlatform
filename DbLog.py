@@ -1,11 +1,32 @@
 import os
 import datetime as dt
-import inspect # For getting filename from calling script
-import sys
+#import inspect # For getting code info from calling script
+import sys # Works better
+import ast
 
 from rich import print
 
 LOG_FILENAME = "DB_MANAGER_LOG.log"
+RECURSION_STOPS = []
+EXCLUSIONS = ["__init__", "execute_query", "execute_read_query"]
+
+# Get all function names from command for stopping backwards frame recursion.
+filename = "command.py"
+with open(filename) as file:
+    node = ast.parse(file.read())
+classes = [n for n in node.body if isinstance(n, ast.ClassDef)]
+for class_ in classes:
+    RECURSION_STOPS.extend([n.name for n in class_.body if isinstance(n, ast.FunctionDef)])
+    RECURSION_STOPS = [item for item in RECURSION_STOPS if item not in EXCLUSIONS]
+
+filename = "database_manager.py"
+with open(filename) as file:
+    node = ast.parse(file.read())
+classes = [n for n in node.body if isinstance(n, ast.ClassDef)]
+for class_ in classes:
+    RECURSION_STOPS.extend([n.name for n in class_.body if isinstance(n, ast.FunctionDef)])
+    RECURSION_STOPS = [item for item in RECURSION_STOPS if item not in EXCLUSIONS]
+
 
 class DbLog():
     """Log to log_file."""
@@ -22,5 +43,12 @@ class DbLog():
         if self.write_to_file:
             with open(self.log_file_path, 'a') as log:
                 log.write(f"\nDB_MANAGER_LOG ({dt.datetime.now().strftime('%H:%M:%S %m/%d/%Y')}): "
-                    + ("ERROR" if err else "") + ' '.join(data))
-                log.write(f"\n--> REASON '{reason}' | From file '{os.path.basename(sys._getframe().f_back.f_back.f_code.co_filename)}' in func '{sys._getframe().f_back.f_back.f_code.co_name}'")
+                    + ("ERROR" if err else "") + ' '.join(data) + " ")
+                # Get filename together with function name of calling script while recursively going through until recursion stop is hit.
+                frame = sys._getframe()
+                while not frame.f_code.co_name in RECURSION_STOPS and frame:
+                    last_frame = frame
+                    frame = frame.f_back
+                if not frame:
+                    frame = last_frame
+                log.write(f"--> REASON '{reason}' | From file '{os.path.basename(frame.f_code.co_filename)}' in func '{frame.f_code.co_name}'")
