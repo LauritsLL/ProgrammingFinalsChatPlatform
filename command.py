@@ -130,7 +130,7 @@ class Encryption():
         for emsg in encrypted_messages:
             decrypted = self.decrypt_message(emsg.get("text")) # FAIL ORRR?
             message_obj = Table.get("Message", {"id": emsg.get("message")})
-            
+
             encrypted = public_key.encrypt(
                 decrypted.encode(),
                 padding.OAEP(
@@ -486,7 +486,7 @@ class Command():
             elif inp == "login" or inp == "l":
                 self.login()
             elif inp == "shutdown":
-                #if they want to shutdown the program.
+                # If they want to shutdown the program.
                 return False
             else:
                 print("Try again")

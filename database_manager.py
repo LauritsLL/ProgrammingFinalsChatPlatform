@@ -435,11 +435,6 @@ class DbManager():
         
         return encrypted_msgs
 
-    # def add_new_encrypted_message(self, encrypted, message_obj, deviceuserrel):
-    #     next_id = Table.get_id("EncryptedDeviceMessageRelation")
-    #     Table.Table("EncryptedDeviceMessageRelation", {"id": next_id, 
-    #         "message": message_obj.get("id"), "deviceuserrelation": deviceuserrel.get("id"), "text": encrypted})
-
     def get_messages(self, conversation, user, device):
         messages = Table.get("Message", {'conversation': conversation.get('id')}, filtered=True)
         if messages is None: return

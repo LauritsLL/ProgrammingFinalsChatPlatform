@@ -20,7 +20,7 @@ __init__	database_manager.py	/^    def __init__(self):$/;"	m	class:DbManager
 __str__	Table.py	/^    def __str__(self):$/;"	m	class:Table
 accept_friend_request	database_manager.py	/^    def accept_friend_request(self, request):$/;"	m	class:DbManager
 add_user	command.py	/^    def add_user(self):$/;"	m	class:Command
-add_user_to_conversation	database_manager.py	/^    def add_user_to_conversation(self, _user, conversation, username):$/;"	m	class:DbManager
+add_user_to_conversation	database_manager.py	/^    def add_user_to_conversation(self, current_user, conversation, username):$/;"	m	class:DbManager
 authenticate_user	database_manager.py	/^    def authenticate_user(self, username, hashed):$/;"	m	class:DbManager
 c	main.py	/^from command import commands as c$/;"	x	nameref:unknown:commands
 change_name	command.py	/^    def change_name(self):$/;"	m	class:Command
@@ -30,16 +30,17 @@ commands	command.py	/^commands = Command()$/;"	v
 create_connection	database_manager.py	/^    def create_connection(self, host_name, username, user_password, db_name=""):$/;"	m	class:DbManager
 create_conversation	database_manager.py	/^    def create_conversation(self, user, username):$/;"	m	class:DbManager
 create_device_user_relation	database_manager.py	/^    def create_device_user_relation(self, publickey_str, user, device):$/;"	m	class:DbManager
-create_encrypted_message	database_manager.py	/^    def create_encrypted_message(self,encrypted,message_obj,device_id):$/;"	m	class:DbManager
+create_encrypted_message	database_manager.py	/^    def create_encrypted_message(self,encrypted,message_obj,deviceuserrel_id):$/;"	m	class:DbManager
 create_message	database_manager.py	/^    def create_message(self, user, conversation):$/;"	m	class:DbManager
 create_privatekey	command.py	/^    def create_privatekey(self, user):$/;"	m	class:Encryption
 decline_friend_request	database_manager.py	/^    def decline_friend_request(self, request):$/;"	m	class:DbManager
-decryptmessage	command.py	/^    def decryptmessage(self,encrypted_message,user):$/;"	m	class:Encryption
+decrypt_message	command.py	/^    def decrypt_message(self,encrypted_message):$/;"	m	class:Encryption
 delete	Table.py	/^    def delete(self):$/;"	m	class:Table
 dm	Table.py	/^import database_manager as dm$/;"	I	nameref:module:database_manager
 dm	command.py	/^import database_manager as dm$/;"	I	nameref:module:database_manager
 dm	main.py	/^import database_manager as dm$/;"	I	nameref:module:database_manager
-encrypt_message	command.py	/^    def encrypt_message(self, message, conversation):$/;"	m	class:Encryption
+encrypt_existing_messages_for_other_user	command.py	/^    def encrypt_existing_messages_for_other_user(self, encrypted_messages, other_user):$/;"	m	class:Encryption
+encrypt_message	command.py	/^    def encrypt_message(self, message, conversation, sender, other_device_user_rel=None):$/;"	m	class:Encryption
 execute_query	database_manager.py	/^    def execute_query(self, query):$/;"	m	class:DbManager
 execute_read_query	database_manager.py	/^    def execute_read_query(self, query):$/;"	m	class:DbManager
 friend_request	database_manager.py	/^    def friend_request(self, username, user):$/;"	m	class:DbManager
@@ -51,10 +52,12 @@ get	Table.py	/^def get(tablename, flags, column="all", filtered=False):$/;"	f
 get_column_names	Table.py	/^def get_column_names(tablename):$/;"	f
 get_conversations	database_manager.py	/^    def get_conversations(self, user, get_ids=False):$/;"	m	class:DbManager
 get_device	command.py	/^    def get_device(self):$/;"	m	class:Encryption
-get_devices	database_manager.py	/^    def get_devices(self, user):$/;"	m	class:DbManager
+get_device_user_rel	database_manager.py	/^    def get_device_user_rel(self, user, device_id=0):$/;"	m	class:DbManager
+get_encrypted_messages_current_conversation	database_manager.py	/^    def get_encrypted_messages_current_conversation(self, dur_specific_device, opened_conversati/;"	m	class:DbManager
 get_friend_requests	database_manager.py	/^    def get_friend_requests(self, user, user2=None):$/;"	m	class:DbManager
 get_friends	database_manager.py	/^    def get_friends(self, user):$/;"	m	class:DbManager
-get_messages	database_manager.py	/^    def get_messages(self, conversation, device):$/;"	m	class:DbManager
+get_id	Table.py	/^def get_id(tablename): $/;"	f
+get_messages	database_manager.py	/^    def get_messages(self, conversation, user, device):$/;"	m	class:DbManager
 get_privatekey	command.py	/^    def get_privatekey(self, user):$/;"	m	class:Encryption
 get_public_key	database_manager.py	/^    def get_public_key(self, user):$/;"	m	class:DbManager
 get_user_obj	command.py	/^    def get_user_obj(self):$/;"	m	class:Command
@@ -75,7 +78,7 @@ print_user	command.py	/^    def print_user(self): # DEBUG\/TESTING$/;"	m	class:C
 r	command.py	/^import random as r$/;"	I	nameref:module:random
 r	database_manager.py	/^import random as r$/;"	I	nameref:module:random
 read_messages	command.py	/^    def read_messages(self):$/;"	m	class:Command
-read_public_key	command.py	/^    def read_public_key(self, public_key):$/;"	m	class:Encryption
+read_public_key	command.py	/^    def read_public_key(self, pem: str):$/;"	m	class:Encryption
 register	command.py	/^    def register(self):$/;"	m	class:Command
 registeruser	database_manager.py	/^    def registeruser(self, username, salt, hashed, firstname, lastname):$/;"	m	class:DbManager
 save	Table.py	/^    def save(self, fields={}):$/;"	m	class:Table
