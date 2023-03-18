@@ -361,6 +361,8 @@ class DbManager():
 
     def add_user_to_conversation(self, current_user, conversation, username):
         user_to_add=Table.get("User",{"username":username})
+        if user_to_add is None:
+            return None,"You are not friends with this user or the user does not exist."
         if not self.is_friends_with(current_user, user_to_add):
             return None,f"You are not friends with '{username}'."
         # Enumerating through already added users to modify conversation name.

@@ -3,7 +3,7 @@ TODO:
 Make some logic for classes and a group of students.
 
 3:
-command.py: Linje 77, 127, 132 
+command.py: Linje 77, 127, 132, 244, 329, 346, 357, 443, 446
 Der benyttes DB-funktionalitet. Flyt.
 
 EKSTRA:
