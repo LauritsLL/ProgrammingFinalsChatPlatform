@@ -1,0 +1,200 @@
+❯ python3 main.py
+Login/Register/Shutdown: r
+Username: l
+First name: l
+Last name: l
+Password: l
+Password (Confirm): l
+Key was not found
+Successful creation of Device-User relation. Eller noget.
+Command: logout
+Login/Register/Shutdown: r
+Username: s
+First name: s
+Last name: s
+Password: s
+Password (Confirm): s
+Key was not found
+Successful creation of Device-User relation. Eller noget.
+Command: sfr
+Send to username: l
+Friend request was send to user with username 'l'
+Command: logout
+Login/Register/Shutdown: l
+Username: s
+Password: s
+Command: logout
+Login/Register/Shutdown: l
+Username: l
+Password: l
+Command: fr
+Friend requests found.
+You have a friend request from: 
+From username: s
+Do you want to accept or decline any (See 'help' for more info)? accept
+Which one do you want to accept? 
+l
+You do not have a friend request from that user.
+Do you want to accept or decline any (See 'help' for more info)? accept
+Which one do you want to accept? 
+s
+Friend request was accepted.
+Command: sc
+With username: s
+Command: rm
+No conversation opened
+Command: oc
+Which conversation do you want to open: s
+Success!
+Command: rm
+Command: sm
+Send message in s
+> hey
+Command: rm
+You: hey
+Command: sm  
+Send message in s
+> wey
+Command: rm
+You: hey
+You: wey
+Command: logout
+Login/Register/Shutdown: l
+Username: s
+Password: s
+Command: oc
+Which conversation do you want to open: ls
+l
+Which conversation do you want to open: l
+Success!
+Command: rm
+l: hey
+l: wey
+Command: sm
+Send message in l
+> rey!
+Command: r
+command not found. Use the command help for more info
+Command: rm
+l: hey
+l: wey
+You: rey!
+Command: logout
+Login/Register/Shutdown: l
+Username: l
+Password: l
+Command: oc 
+Which conversation do you want to open: s
+Success!
+Command: rm
+You: hey
+You: wey
+s: rey!
+Command: sc    
+With username: 
+Command: oc 
+Which conversation do you want to open: 
+Success!
+Command: sm
+Send message in l
+> heyyy
+Command: ls
+command not found. Use the command help for more info
+Command: rm
+You: heyyy
+Command: members
+Users in conversation:
+l
+Command: logout
+Login/Register/Shutdown: l
+Username: s
+Password: s
+Command: ls
+command not found. Use the command help for more info
+Command: oc
+Which conversation do you want to open: ls
+l
+Which conversation do you want to open: back
+Command: logout
+Login/Register/Shutdown: l
+Username: l
+Password: l
+Command: oc
+Which conversation do you want to open: 
+Success!
+Command: rm
+You: heyyy
+Command: sm
+Send message in l
+> weeyyyy
+Command: rm
+You: heyyy
+You: weeyyyy
+Command: adduser
+Who do you want to add: s
+'s' has been added to the conversation.
+Command: rm
+You: heyyy
+You: weeyyyy
+Command: members
+Users in conversation:
+l | s
+Command: logout
+Login/Register/Shutdown: l
+Username: s
+Password: s
+Command: oc
+Which conversation do you want to open: ls
+l
+l
+Which conversation do you want to open: lsids
+name           nickname       id             
+l and s        l              #16220
+l and s        l              #82111
+Which conversation do you want to open: #82111
+Conversation found
+Command: members
+users doesn't exist in Conversation
+Traceback (most recent call last):
+  File "/home/laurits/Desktop/ProgrammingfromLinux/HTX/EKSAMENSPROJEKT2023/Chat platform/main.py", line 22, in <module>
+    main()
+  File "/home/laurits/Desktop/ProgrammingfromLinux/HTX/EKSAMENSPROJEKT2023/Chat platform/main.py", line 14, in main
+    c.commands[command]()
+  File "/home/laurits/Desktop/ProgrammingfromLinux/HTX/EKSAMENSPROJEKT2023/Chat platform/command.py", line 413, in members
+    usernames = [u.get("username") for u in users]
+TypeError: 'NoneType' object is not iterable
+❯ python3 main.py
+Login/Register/Shutdown: l
+Username: s
+Password: s
+Command: oc
+Which conversation do you want to open: lsids
+name           nickname       id             
+l and s        l              #16220
+l and s        l              #82111
+Which conversation do you want to open: #82111
+Conversation found
+Command: rm
+l: heyyy
+l: weeyyyy
+Command: sm
+Send message in l
+> hey?
+users doesn't exist in Conversation
+Traceback (most recent call last):
+  File "/home/laurits/Desktop/ProgrammingfromLinux/HTX/EKSAMENSPROJEKT2023/Chat platform/main.py", line 14, in main
+    c.commands[command]()
+KeyError: 'sm'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/laurits/Desktop/ProgrammingfromLinux/HTX/EKSAMENSPROJEKT2023/Chat platform/main.py", line 22, in <module>
+    main()
+  File "/home/laurits/Desktop/ProgrammingfromLinux/HTX/EKSAMENSPROJEKT2023/Chat platform/main.py", line 17, in main
+    c.commands[c.user_shortcuts[command]]()
+  File "/home/laurits/Desktop/ProgrammingfromLinux/HTX/EKSAMENSPROJEKT2023/Chat platform/command.py", line 288, in send_message
+    self.encryption.encrypt_message(message, self.opened_conversation, self.user)
+  File "/home/laurits/Desktop/ProgrammingfromLinux/HTX/EKSAMENSPROJEKT2023/Chat platform/command.py", line 110, in encrypt_message
+    for user in conversation.get("users"):
+TypeError: 'NoneType' object is not iterable

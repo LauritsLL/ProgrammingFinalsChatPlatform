@@ -332,7 +332,9 @@ class DbManager(DbLog):
             if conversationToOpen[0] == "#":
                 try:
                     con_id=int(conversationToOpen[1:]) # Cut # away
-                    conversation = Table.get("Conversation",{"con_id":con_id}) 
+                    conversation = Table.get("Conversation",{"con_id":con_id})
+                    ucrel = Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")})
+                    conversation.set(nickname=ucrel.get("nickname")) # Command().opened_conversation is a non-conventional Table. Set nickname
                     if conversation is not None:
                         status="Conversation found"
                     else:
@@ -423,6 +425,7 @@ class DbManager(DbLog):
         VALUES (%s, %s, %s, %s)
         """
         data = (Table.get_id("EncryptedDeviceMessageRelation"),deviceuserrel_id, message_obj.get("id"), encrypted)
+        
         try:
             cursor = self.connection.cursor()
             cursor.execute(query, data)

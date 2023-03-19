@@ -27,7 +27,6 @@ for class_ in classes:
     RECURSION_STOPS.extend([n.name for n in class_.body if isinstance(n, ast.FunctionDef)])
     RECURSION_STOPS = [item for item in RECURSION_STOPS if item not in EXCLUSIONS]
 
-
 class DbLog():
     """Log to log_file."""
     def __init__(self) -> None:
