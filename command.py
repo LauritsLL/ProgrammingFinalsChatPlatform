@@ -19,7 +19,7 @@ DEFAULT_WS_ADJ = 15
 
 
 class Encryption():
-    """General-purpose class for encryption"""
+    """Encryption class for handling END-TO-END Encryption between client and database server."""
     def __init__(self) -> None:
         self.private_key = None
         self.public_key = None
@@ -132,7 +132,7 @@ class Encryption():
         public_key = self.read_public_key(other_user_device_rel.get("public_key"))
         # Re-encrypt messages for new user.
         for emsg in encrypted_messages:
-            decrypted = self.decrypt_message(emsg.get("text")) # FAIL ORRR?
+            decrypted = self.decrypt_message(emsg.get("text")) 
             message_obj = Table.get("Message", {"id": emsg.get("message")})
 
             encrypted = public_key.encrypt(
@@ -148,10 +148,9 @@ class Encryption():
             dm.manager.create_encrypted_message(base64.b64encode(encrypted), message_obj, other_user_device_rel.get("id"))
                
     def decrypt_message(self,encrypted_message):
-        private_key = self.private_key
-        if not private_key: return
+        if not self.private_key: return
 
-        original_message = private_key.decrypt(
+        original_message = self.private_key.decrypt(
             base64.b64decode(encrypted_message),
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -194,7 +193,7 @@ class Command():
         """prints all the commands"""
         print("_ and spaces are ignored. Please proceed.")
         for i,command in enumerate(self.commands):
-            (len(str(len(self.commands)-1))-len(str(i)))*"0" + str(i)
+            i = (len(str(len(self.commands)-1))-len(str(i)))*"0" + str(i)
             print(str(i)+":",command)
     
     def login(self):
@@ -427,11 +426,11 @@ class Command():
 
     def change_name(self):
         if self.opened_conversation:
-            print(f"what would you like to change the name of '{self.opened_conversation.get('name')}'")
-            name=input(">")
+            print(f"What would you like to change the name of '{self.opened_conversation.get('name')}'")
+            name=input("> ")
             dm.manager.change_name(name,self.opened_conversation)
         else:
-            print("Open a conversation first")
+            print("Open a conversation first.")
 
     def friends(self):
         """List current friends of current user."""

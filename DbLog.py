@@ -35,7 +35,7 @@ class DbLog():
         self.debug_print = False
         self.write_to_file = True
 
-    def log(self, *data, err=False, reason="UNSPECIFIED"):
+    def log(self, *data, err=False, reason=None):
         """Log any data"""
         data = [str(d) for d in data]
         if self.debug_print:
@@ -44,11 +44,13 @@ class DbLog():
             with open(self.log_file_path, 'a') as log:
                 log.write(f"\nDB_MANAGER_LOG ({dt.datetime.now().strftime('%H:%M:%S %m/%d/%Y')}): "
                     + ("ERROR" if err else "") + "*" + ' '.join(data) + "* ")
-                # Get filename together with function name of calling script while recursively going through until recursion stop is hit.
-                frame = sys._getframe()
-                while not frame.f_code.co_name in RECURSION_STOPS and frame:
+                if reason:
+                    # Get filename together with function name of calling script while recursively going through until recursion stop is hit.
+                    frame = sys._getframe()
                     last_frame = frame
-                    frame = frame.f_back
-                if not frame:
-                    frame = last_frame
-                log.write(f"--> REASON '{reason}' | From file '{os.path.basename(frame.f_code.co_filename)}' in func '{frame.f_code.co_name}'")
+                    while not frame.f_code.co_name in RECURSION_STOPS and frame:
+                        last_frame = frame
+                        frame = frame.f_back
+                    if not frame:
+                        frame = last_frame
+                    log.write(f"--> REASON '{reason}' | From file '{os.path.basename(frame.f_code.co_filename)}' in func '{frame.f_code.co_name}'")
