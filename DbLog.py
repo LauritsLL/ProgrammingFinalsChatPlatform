@@ -43,7 +43,7 @@ class DbLog():
         if self.write_to_file:
             with open(self.log_file_path, 'a') as log:
                 log.write(f"\nDB_MANAGER_LOG ({dt.datetime.now().strftime('%H:%M:%S %m/%d/%Y')}): "
-                    + ("ERROR" if err else "") + ' '.join(data) + " ")
+                    + ("ERROR" if err else "") + "*" + ' '.join(data) + "* ")
                 # Get filename together with function name of calling script while recursively going through until recursion stop is hit.
                 frame = sys._getframe()
                 while not frame.f_code.co_name in RECURSION_STOPS and frame:

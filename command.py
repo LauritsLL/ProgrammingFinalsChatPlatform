@@ -14,7 +14,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 import base64
 
-
 # STANDARD WHITESPACE ADJUSTMENT FOR PRINT FORMATTING.
 DEFAULT_WS_ADJ = 15
 

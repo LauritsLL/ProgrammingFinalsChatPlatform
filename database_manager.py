@@ -422,7 +422,6 @@ class DbManager(DbLog):
         INSERT INTO EncryptedDeviceMessageRelation (id, deviceuserrelation, message, text)
         VALUES (%s, %s, %s, %s)
         """
-
         data = (Table.get_id("EncryptedDeviceMessageRelation"),deviceuserrel_id, message_obj.get("id"), encrypted)
         try:
             cursor = self.connection.cursor()
