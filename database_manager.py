@@ -334,7 +334,9 @@ class DbManager(DbLog):
                     con_id=int(conversationToOpen[1:]) # Cut # away
                     conversation = Table.get("Conversation",{"con_id":con_id})
                     ucrel = Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")})
-                    conversation.set(nickname=ucrel.get("nickname")) # Command().opened_conversation is a non-conventional Table. Set nickname
+                    conversation.set(nickname=ucrel.get("nickname"), commit=False) # Command().opened_conversation is a non-conventional Table. Set nickname
+                    users = self.get_conversation_users(conversation)
+                    conversation.set(users=users, commit=False)
                     if conversation is not None:
                         status="Conversation found"
                     else:
@@ -355,11 +357,7 @@ class DbManager(DbLog):
             conversation=Table.get("Conversation",{'id': ucrel.get("conversation")})
             opened_conversation=Table.Table("Conversation",{"id":conversation.get("id"),"nickname":ucrel.get("nickname"),"name":conversation.get("name")},commit=False)
             if conversation.get("class") is None:
-                userconversationrelations = Table.get("UserConversationRelation",{'conversation':conversation.get("id")},filtered=True)
-                users=[]
-                for userconversationrelation in userconversationrelations:
-                    with_user=Table.get("User",{"id":userconversationrelation.get("user")})
-                    users.append(with_user)
+                users = self.get_conversation_users(conversation)
                 opened_conversation.set(commit=False, users=users)
             else:
                 #this is a class do something TODO
@@ -367,6 +365,15 @@ class DbManager(DbLog):
             return opened_conversation, "Success!"
         else:
             return None,"Conversation not found"
+    
+    def get_conversation_users(self, conversation):
+        """Get all users from a given conversation."""
+        ucrels = Table.get("UserConversationRelation", {"conversation": conversation.get("id")}, filtered=True)
+        users = []
+        for ucrel in ucrels:
+            users.append(Table.get("User", {"id": ucrel.get("user")}))
+        
+        return users
 
     def add_user_to_conversation(self, current_user, conversation, username):
         user_to_add=Table.get("User",{"username":username})

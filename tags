@@ -4,7 +4,7 @@
 !_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
 !_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
 !_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
-!_TAG_PROC_CWD	/home/laurits/Desktop/ProgrammingfromLinux/HTX/HTX-PROGRAMMERING/Chat platform/	//
+!_TAG_PROC_CWD	/home/laurits/Desktop/ProgrammingfromLinux/HTX/EKSAMENSPROJEKT2023/Chat platform/	//
 !_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
 !_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
 !_TAG_PROGRAM_URL	https://ctags.io/	/official site/
@@ -63,6 +63,7 @@ generate_device	database_manager.py	/^    def generate_device(self, device_id=-1
 get	Table.py	/^    def get(self, field_name):$/;"	m	class:Table
 get	Table.py	/^def get(tablename, flags, column="all", filtered=False):$/;"	f
 get_column_names	Table.py	/^def get_column_names(tablename):$/;"	f
+get_conversation_users	database_manager.py	/^    def get_conversation_users(self, conversation):$/;"	m	class:DbManager
 get_conversations	database_manager.py	/^    def get_conversations(self, user, get_ids=False):$/;"	m	class:DbManager
 get_device	command.py	/^    def get_device(self):$/;"	m	class:Encryption
 get_device_user_rel	database_manager.py	/^    def get_device_user_rel(self, user, device_id=0):$/;"	m	class:DbManager
@@ -78,7 +79,7 @@ help	command.py	/^    def help(self):$/;"	m	class:Command
 is_friends_with	database_manager.py	/^    def is_friends_with(self, user, other):$/;"	m	class:DbManager
 list_format	command.py	/^    def list_format(self, l):$/;"	m	class:Command
 list_format	database_manager.py	/^    def list_format(self, l):$/;"	m	class:DbManager
-log	DbLog.py	/^    def log(self, *data, err=False, reason="UNSPECIFIED"):$/;"	m	class:DbLog
+log	DbLog.py	/^    def log(self, *data, err=False, reason=None):$/;"	m	class:DbLog
 login	command.py	/^    def login(self):$/;"	m	class:Command
 logout	command.py	/^    def logout(self):$/;"	m	class:Command
 main	main.py	/^def main():$/;"	f

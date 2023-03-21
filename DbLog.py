@@ -42,7 +42,7 @@ class DbLog():
         if self.write_to_file:
             with open(self.log_file_path, 'a') as log:
                 log.write(f"\nDB_MANAGER_LOG ({dt.datetime.now().strftime('%H:%M:%S %m/%d/%Y')}): "
-                    + ("ERROR" if err else "") + "*" + ' '.join(data) + "* ")
+                    + ("ERROR " if err else "") + "*" + ' '.join(data) + "* ")
                 if reason:
                     # Get filename together with function name of calling script while recursively going through until recursion stop is hit.
                     frame = sys._getframe()
@@ -52,4 +52,4 @@ class DbLog():
                         frame = frame.f_back
                     if not frame:
                         frame = last_frame
-                    log.write(f"--> REASON '{reason}' | From file '{os.path.basename(frame.f_code.co_filename)}' in func '{frame.f_code.co_name}'")
+                    log.write(f"--> REASON '{reason}' | From file '{os.path.basename(frame.f_code.co_filename)}' in func '{frame.f_code.co_name}', lineno:{frame.f_lineno}")
