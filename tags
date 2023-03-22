@@ -77,6 +77,8 @@ get_user_obj	command.py	/^    def get_user_obj(self):$/;"	m	class:Command
 getsalt	database_manager.py	/^    def getsalt(self,username):$/;"	m	class:DbManager
 help	command.py	/^    def help(self):$/;"	m	class:Command
 is_friends_with	database_manager.py	/^    def is_friends_with(self, user, other):$/;"	m	class:DbManager
+leave_conversation	command.py	/^    def leave_conversation(self):$/;"	m	class:Command
+leave_conversation	database_manager.py	/^    def leave_conversation(self, conversation, user):$/;"	m	class:DbManager
 list_format	command.py	/^    def list_format(self, l):$/;"	m	class:Command
 list_format	database_manager.py	/^    def list_format(self, l):$/;"	m	class:DbManager
 log	DbLog.py	/^    def log(self, *data, err=False, reason=None):$/;"	m	class:DbLog

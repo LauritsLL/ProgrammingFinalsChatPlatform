@@ -174,6 +174,7 @@ class Command():
             "printuser":self.print_user, "sendfriendrequest":self.send_friend_request, "friendrequests":self.friend_requests,
             "friends": self.friends, "makeshortcut":self.make_shortcut,"shortcuts":self.shortcuts,"members":self.members,
             "setnickname":self.set_nickname, "changename":self.change_name,
+            "leaveconversation": self.leave_conversation,
         }
         try:
             with open("shortcuts.txt", "r") as f:
@@ -299,7 +300,7 @@ class Command():
         #gets all the messages for the opened_conversation
         messages=dm.manager.get_messages(self.opened_conversation, self.user, self.encryption.get_device())
         #returns if there are no messages and prints no message in this conversation
-        if messages == None: 
+        if not messages: 
             print("No messages in this conversation")
             return
         
@@ -307,7 +308,6 @@ class Command():
             #foreach
             #if the messages sender is the logged in user - write You:{message} else write {sender}:{message}
             # Sender is converted to a username instead for an id (In DB Manager -> get_messages())
-
             if msg.get("sender") == self.user.get("username"):
                 print(f"You: {self.encryption.decrypt_message(msg.get('text'))}")
             else:
@@ -385,7 +385,23 @@ class Command():
 
     def start_conversation(self):
         username=input("With username: ")
-        dm.manager.create_conversation(self.user,username)
+        status = dm.manager.create_conversation(self.user,username)
+        print(status)
+    
+    def leave_conversation(self):
+        if self.opened_conversation:
+            validate = input("Are you sure you want to leave this conversation (CANNOT BE UNDONE!)? (y/N) ")
+            validate = validate.strip().lower()
+            if validate == "y" or validate == "yes":
+                # Leaving conversation...
+                status = dm.manager.leave_conversation(self.opened_conversation, self.user)
+                print(status)
+                self.opened_conversation = None
+            else:
+                # Everything else, "N", "no" or any other invalid input is defaulted to no.
+                return
+        else:
+            print("No conversation has been opened.")
 
     def add_user(self):
         if self.opened_conversation is None:

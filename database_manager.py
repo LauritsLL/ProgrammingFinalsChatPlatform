@@ -18,6 +18,7 @@ class DbManager(DbLog):
         self.connection = None
         self.write_to_file = WRITE_LOG
         self.debug_print = DEBUG_PRINT
+        self.deleted_user = None # Table containing the "Deleted user" table for use when conserving old messages from a user that leaves
 
     def list_format(self, l):
         s = ""
@@ -83,7 +84,7 @@ class DbManager(DbLog):
             firstname VARCHAR(32) NOT NULL,
             lastname VARCHAR(64) NOT NULL,
             salt VARCHAR(10) NOT NULL,
-            password VARCHAR(128) NOT NULL,
+            password VARCHAR(256) NOT NULL,
             ILuserid INT,
             PRIMARY KEY (id),
             FOREIGN KEY (ILuserid) REFERENCES ILUser(id)
@@ -204,7 +205,12 @@ class DbManager(DbLog):
         # Set up id chain for all tables...
         if not Table.get("Ids", {"id":1}):
             self.execute_query("INSERT INTO Ids () VALUES ()")
-    
+        
+        if not Table.get("User", {"username": "<deleted_user>"}):
+            # Set up "Deleted user" throw-away table.
+            uid = Table.get_id("User")
+            self.deleted_user = Table.Table("User", {"id": uid, "username": "<deleted_user>", "firstname": "<Deleted>", "lastname": "<Deleted>", "salt": 0000000000, "password": "PrUaYZS1j1lJIWjJIQHIbFh9I3I8r9tLEKMnMDPqXwZKRsvQT2vrCLd9y27t7s5EmDO0BvUx4SizhPXLh8WFMODvqxQpaRObcXFcwEq2Adq28llrLhAtW64JTQTK8V294bL08yZTid2fE2kkGr5lHcZoPXX8bQFcNjKYbQ9dvNuMtNzLNnpUEqFjf8Ofu6O7hDQ9BAAaS9dZoAYE71mJ75p6v0stDjcE1PQMtRBWux0mvh1AnnYR8Jlb1FX4TJQJ"})
+        
     def create_connection(self, host_name, username, user_password, db_name=""):
         try:
             self.connection = mysql.connector.connect(
@@ -294,14 +300,20 @@ class DbManager(DbLog):
                  
             conversation=Table.Table("Conversation",{"name":"","con_id":con_id})
             Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
+            status = "Successfully created a single-user conversation."
+            self.log(status, reason="Create singe-user conversation")
+            return status
         else: 
             # Check that username is befriended.
             other_user = Table.get("User", {"username": username})
             if other_user is None:
-                self.log("No friends found with that username.", reason=f"Create conversation with user '{username}'")
-                return
+                status = "No friends found with that username."
+                self.log(status, reason=f"Create conversation with user '{username}'")
+                return status
             if not self.is_friends_with(user, other_user):
-                self.log("You are not friends with this user yet or the user does not exist.", reason=f"Create conversation with user '{username}'")
+                status = "You are not friends with this user yet or the user does not exist."
+                self.log(status, reason=f"Create conversation with user '{username}'")
+                return status
             else:
                 name = f"{user.get('username')} and {username}"
                 con_id=r.randint(0,99999)
@@ -312,7 +324,29 @@ class DbManager(DbLog):
                 # Generating relation between users both ways.
                 Table.Table("UserConversationRelation",{"user":other_user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
                 Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":other_user.get("username"),"conversation":conversation.get("id")})
-
+                status = "Success!"
+                self.log(status, reason="Success create conversation.")
+                return status
+    
+    def leave_conversation(self, conversation, user):
+        """Leave the conversation for good with user received."""
+        # Get UserConversationRelation from user that wants to leave and set the new user to be the default "Deleted user" which resides in the DB on setup()
+        # Basically "deletes" conversation for the leaving user.
+        ucrel = Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")})
+        ucrel.set(user=self.deleted_user.get("id"))
+        if not Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")}):
+            status = "Successfully leaved the conversation."
+            self.log(status, reason="Leave conversation")
+            # Substitute all messages' sender.
+            messages = Table.get("Message", {"sender": user.get("id")}, filtered=True)
+            for msg in messages:
+                msg.set(sender=self.deleted_user.get("id"))
+            return status
+        else:
+            status = "Failed to leave the conversation."
+            self.log(status, err=True, reason="Failed leaving the conversation")
+            return status
+        
     def get_conversations(self, user, get_ids=False):
         ucrels = Table.get("UserConversationRelation",{"user":user.get("id")},filtered=True)
         conversations=[]
@@ -426,7 +460,6 @@ class DbManager(DbLog):
             return Table.get("DeviceUserRelation", {"user":user.get("id"),"device":device_id}, filtered=True)
 
     def create_encrypted_message(self,encrypted,message_obj,deviceuserrel_id):
-        # encrypted = str(encrypted)[1:].replace("'", "\\'").replace('"', '\\"')
         query = """
         INSERT INTO EncryptedDeviceMessageRelation (id, deviceuserrelation, message, text)
         VALUES (%s, %s, %s, %s)

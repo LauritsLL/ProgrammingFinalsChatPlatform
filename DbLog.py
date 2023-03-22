@@ -52,4 +52,4 @@ class DbLog():
                         frame = frame.f_back
                     if not frame:
                         frame = last_frame
-                    log.write(f"--> REASON '{reason}' | From file '{os.path.basename(frame.f_code.co_filename)}' in func '{frame.f_code.co_name}', lineno:{frame.f_lineno}")
+                    log.write(f"--> REASON \"{reason}\" | From file \"{os.path.basename(frame.f_code.co_filename)}\" in func \"{frame.f_code.co_name}\", lineno:{frame.f_lineno}")
