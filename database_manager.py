@@ -19,6 +19,17 @@ class DbManager(DbLog):
         self.write_to_file = WRITE_LOG
         self.debug_print = DEBUG_PRINT
         self.deleted_user = None # Table containing the "Deleted user" table for use when conserving old messages from a user that leaves
+        self.deleted_username = "<deleted_user>"
+    
+    def get_or_create_deleted_user_obj(self):
+        """Get the throw-away object for deleted and leaving users."""
+        if not Table.get("User", {"username": "<deleted_user>"}):
+            # Set up "Deleted user" throw-away table.
+            uid = Table.get_id("User")
+            self.deleted_user = Table.Table("User", {"id": uid, "username": self.deleted_username, "firstname": "<Deleted>", "lastname": "<Deleted>", "salt": 0000000000, "password": "PrUaYZS1j1lJIWjJIQHIbFh9I3I8r9tLEKMnMDPqXwZKRsvQT2vrCLd9y27t7s5EmDO0BvUx4SizhPXLh8WFMODvqxQpaRObcXFcwEq2Adq28llrLhAtW64JTQTK8V294bL08yZTid2fE2kkGr5lHcZoPXX8bQFcNjKYbQ9dvNuMtNzLNnpUEqFjf8Ofu6O7hDQ9BAAaS9dZoAYE71mJ75p6v0stDjcE1PQMtRBWux0mvh1AnnYR8Jlb1FX4TJQJ"})
+        else:
+            # Get the existing throw-away object.
+            self.deleted_user = Table.get("User", {"username": self.deleted_username})
 
     def list_format(self, l):
         s = ""
@@ -205,11 +216,9 @@ class DbManager(DbLog):
         # Set up id chain for all tables...
         if not Table.get("Ids", {"id":1}):
             self.execute_query("INSERT INTO Ids () VALUES ()")
+
+        self.deleted_user = self.get_or_create_deleted_user_obj()
         
-        if not Table.get("User", {"username": "<deleted_user>"}):
-            # Set up "Deleted user" throw-away table.
-            uid = Table.get_id("User")
-            self.deleted_user = Table.Table("User", {"id": uid, "username": "<deleted_user>", "firstname": "<Deleted>", "lastname": "<Deleted>", "salt": 0000000000, "password": "PrUaYZS1j1lJIWjJIQHIbFh9I3I8r9tLEKMnMDPqXwZKRsvQT2vrCLd9y27t7s5EmDO0BvUx4SizhPXLh8WFMODvqxQpaRObcXFcwEq2Adq28llrLhAtW64JTQTK8V294bL08yZTid2fE2kkGr5lHcZoPXX8bQFcNjKYbQ9dvNuMtNzLNnpUEqFjf8Ofu6O7hDQ9BAAaS9dZoAYE71mJ75p6v0stDjcE1PQMtRBWux0mvh1AnnYR8Jlb1FX4TJQJ"})
         
     def create_connection(self, host_name, username, user_password, db_name=""):
         try:
