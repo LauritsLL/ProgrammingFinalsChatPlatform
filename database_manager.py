@@ -217,7 +217,7 @@ class DbManager(DbLog):
         if not Table.get("Ids", {"id":1}):
             self.execute_query("INSERT INTO Ids () VALUES ()")
 
-        self.deleted_user = self.get_or_create_deleted_user_obj()
+        self.get_or_create_deleted_user_obj()
         
         
     def create_connection(self, host_name, username, user_password, db_name=""):
@@ -376,6 +376,11 @@ class DbManager(DbLog):
                 try:
                     con_id=int(conversationToOpen[1:]) # Cut # away
                     conversation = Table.get("Conversation",{"con_id":con_id})
+                    if not conversation:
+                        status = "Failed getting conversation by id."
+                        self.log(status, reason="Open conversation by id")
+                        return None,status
+           
                     ucrel = Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")})
                     conversation.set(nickname=ucrel.get("nickname"), commit=False) # Command().opened_conversation is a non-conventional Table. Set nickname
                     users = self.get_conversation_users(conversation)
@@ -388,15 +393,18 @@ class DbManager(DbLog):
                 except ValueError:
                     return None, "Using '#' means its a id and it should be followed by an integer (Whole number)."
             
-        ucrel = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":user.get("id")},filtered=True)
+        ucrels = Table.get("UserConversationRelation",{'nickname': conversationToOpen,"user":user.get("id")},filtered=True)
+        ucrel_nicknames = [ucrel.get("nickname") for ucrel in ucrels]
         conversations = Table.get("Conversation",{"name":conversationToOpen},filtered=True)
         for conversation in conversations:
-            ucrel.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")}))
+            # Only if nicknames and names aren't the same. Else duplicates come.
+            if not conversation.get("name") in ucrel_nicknames: 
+                ucrel.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")}))
         
-        if len(ucrel) > 1:
+        if len(ucrels) > 1:
             return None,"More than one conversation with that name"
-        elif len(ucrel) != 0:
-            ucrel = ucrel[0] # Will always be one element.
+        elif len(ucrels) != 0:
+            ucrel = ucrels[0] # Will always be one element.
             conversation=Table.get("Conversation",{'id': ucrel.get("conversation")})
             opened_conversation=Table.Table("Conversation",{"id":conversation.get("id"),"nickname":ucrel.get("nickname"),"name":conversation.get("name")},commit=False)
             if conversation.get("class") is None:
