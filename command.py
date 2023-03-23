@@ -427,6 +427,10 @@ class Command():
         if self.opened_conversation:
             users = self.opened_conversation.get("users")
             usernames = [u.get("username") for u in users]
+            # Hide all deleted users from member list.
+            for i, u in enumerate(usernames):
+                if u == dm.manager.deleted_username:
+                    usernames.pop(i)
             print("Users in conversation:")
             self.list_format(usernames)
     
