@@ -263,6 +263,18 @@ class DbManager(DbLog):
             else:
                 return None
 
+    def get_not_authenticated_users(self, user, authenticated_devices_function):
+        device_user_rels=Table.get("DeviceUserRelation",{"user":user.get("id"),"authenticated":False},filtered=True)
+        if len(device_user_rels) == 0: return
+        for dur in device_user_rels:
+            # Creating unconventional table for getting device OBJECT when authenticating!
+            dur.set(commit=False, device=Table.get("Device",{"id":dur.get("device")}))
+        to_authenticate = authenticated_devices_function(device_user_rels)
+        for dur in to_authenticate:
+            dur.set(authenticated = True)
+            
+
+
     def getsalt(self,username):
         # Gets single field.
         u = Table.get("User",{"username":username})
@@ -275,8 +287,10 @@ class DbManager(DbLog):
         user = Table.get("User", {'username': username})
         if user is None:
             # User is by default authenticated when registering first time.
-            return Table.Table("User",
+            user =Table.Table("User",
                 {"username":username,"salt":salt, "password":hashed,"firstname":firstname,"lastname":lastname})
+
+            return user
         else:
             return None
     
@@ -337,7 +351,7 @@ class DbManager(DbLog):
                 self.log(status, reason="Success create conversation.")
                 return status
     
-    def leave_conversation(self, conversation, user):
+    def leave_conversation(self, conversation, user, encryption): # 'encryption' for server messages.
         """Leave the conversation for good with user received."""
         # Get UserConversationRelation from user that wants to leave and set the new user to be the default "Deleted user" which resides in the DB on setup()
         # Basically "deletes" conversation for the leaving user.
@@ -350,6 +364,10 @@ class DbManager(DbLog):
             messages = Table.get("Message", {"sender": user.get("id")}, filtered=True)
             for msg in messages:
                 msg.set(sender=self.deleted_user.get("id"))
+            # Append a '{username} left the conversation' as a server message ('sender' == 0)
+            msg_obj = self.create_message(self.user, conversation)
+            encrypted = encryption.encrypt_message()
+            # NOT DONE TODO 
             return status
         else:
             status = "Failed to leave the conversation."
@@ -472,9 +490,9 @@ class DbManager(DbLog):
     def get_device_user_rel(self, user, device_id=0):
         # Set device_id if relation for current device and user are wanted.
         if not device_id:
-            return Table.get("DeviceUserRelation",{"user":user.get("id")},filtered=True)
+            return Table.get("DeviceUserRelation",{"user":user.get("id"), "authenticated": True},filtered=True)
         else:
-            return Table.get("DeviceUserRelation", {"user":user.get("id"),"device":device_id}, filtered=True)
+            return Table.get("DeviceUserRelation", {"user":user.get("id"),"device":device_id, "authenticated": True}, filtered=True)
 
     def create_encrypted_message(self,encrypted,message_obj,deviceuserrel_id):
         query = """
@@ -505,11 +523,15 @@ class DbManager(DbLog):
 
     def get_messages(self, conversation, user, device):
         messages = Table.get("Message", {'conversation': conversation.get('id')}, filtered=True)
-        if messages is None: return
+        if messages == []: return
         deviceuserrel = Table.get("DeviceUserRelation", {"user":user.get("id"),"device":device.get("id")})
         for i, msg in enumerate(messages):
-            username = Table.get("User", {'id': msg.get("sender")}).get("username")
+            if msg.get("sender") != 0:
+                username = Table.get("User", {'id': msg.get("sender")}).get("username")
+            else:
+                username = ""
             # Get specific encrypted message from user.
+            print(deviceuserrel, device)
             obj=Table.get("EncryptedDeviceMessageRelation",{"message":msg.get("id"),"deviceuserrelation":deviceuserrel.get("id")})
             text=obj.get("text") # Get encrypted bytes.
             # Creates unconventional table with username being string and not an id reference (An deletes unused fields) for convenience with main.
@@ -585,9 +607,11 @@ class DbManager(DbLog):
 
     def create_device_user_relation(self, publickey_str, user, device):
         if Table.get("DeviceUserRelation", {"user": user.get("id")}):
-            Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": 0})
+            Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": False})
+            print("hej igen")
+            return "Device not authenticated"
         else:
-            Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": 1})
-        return "Successful creation of Device-User relation. Eller noget." # TODO: Check if success?
+            Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": True})
+            return "Success!"
 
 manager = DbManager()

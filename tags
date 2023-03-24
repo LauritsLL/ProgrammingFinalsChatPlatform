@@ -72,13 +72,14 @@ get_friend_requests	database_manager.py	/^    def get_friend_requests(self, user
 get_friends	database_manager.py	/^    def get_friends(self, user):$/;"	m	class:DbManager
 get_id	Table.py	/^def get_id(tablename): $/;"	f
 get_messages	database_manager.py	/^    def get_messages(self, conversation, user, device):$/;"	m	class:DbManager
+get_or_create_deleted_user_obj	database_manager.py	/^    def get_or_create_deleted_user_obj(self):$/;"	m	class:DbManager
 get_privatekey	command.py	/^    def get_privatekey(self, user):$/;"	m	class:Encryption
 get_user_obj	command.py	/^    def get_user_obj(self):$/;"	m	class:Command
 getsalt	database_manager.py	/^    def getsalt(self,username):$/;"	m	class:DbManager
 help	command.py	/^    def help(self):$/;"	m	class:Command
 is_friends_with	database_manager.py	/^    def is_friends_with(self, user, other):$/;"	m	class:DbManager
 leave_conversation	command.py	/^    def leave_conversation(self):$/;"	m	class:Command
-leave_conversation	database_manager.py	/^    def leave_conversation(self, conversation, user):$/;"	m	class:DbManager
+leave_conversation	database_manager.py	/^    def leave_conversation(self, conversation, user, encryption): # 'encryption' for server mess/;"	m	class:DbManager
 list_format	command.py	/^    def list_format(self, l):$/;"	m	class:Command
 list_format	database_manager.py	/^    def list_format(self, l):$/;"	m	class:DbManager
 log	DbLog.py	/^    def log(self, *data, err=False, reason=None):$/;"	m	class:DbLog

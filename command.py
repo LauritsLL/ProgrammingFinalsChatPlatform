@@ -3,6 +3,7 @@ import hashlib
 import random as r
 from rich import print
 import rich
+import os
 
 import database_manager as dm
 import Table
@@ -24,19 +25,26 @@ class Encryption():
         self.private_key = None
         self.public_key = None
         self.device = None
-
+        self.device_folder = "device2"
+        if not os.path.exists(self.device_folder):
+            os.makedirs(self.device_folder)
+    
     def setup_encryption(self, user):
         self.private_key = self.get_privatekey(user)
         if not self.private_key:
+            print("hej")
             # Generate private key for user-device.
             self.private_key = self.create_privatekey(user)
             self.public_key = self.private_key.public_key()
             # Send pubk to db.
-            self.send_public_key_to_database(user)
+            status = self.send_public_key_to_database(user)
             # No authentication is given per default to new devices.
+            return status
+        
         else:
             self.public_key = self.private_key.public_key()
             self.get_device() # Set up member variable device.
+            return "Success!"
 
     def create_privatekey(self, user):
 
@@ -51,8 +59,8 @@ class Encryption():
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption()
         )
-
-        with open(f'{user.get("id")}_private_key.pem', 'wb') as f:
+        p = os.path.join(os.path.abspath(self.device_folder), str(user.get("id")) + "_private_key.pem")
+        with open(p, 'wb') as f:
             f.write(pem)
         
         return private_key
@@ -60,7 +68,8 @@ class Encryption():
     def get_privatekey(self, user):
         if not self.private_key:
             try:
-                with open(f'{user.get("id")}_private_key.pem', "rb") as key_file:
+                p = os.path.join(os.path.abspath(self.device_folder), str(user.get("id")) + "_private_key.pem")
+                with open(p, "rb") as key_file:
                     private_key = serialization.load_pem_private_key(
                         key_file.read(),
                         password=None,
@@ -68,8 +77,8 @@ class Encryption():
                     )
                 self.private_key=private_key
             except FileNotFoundError:
-                print("Key was not found")
                 return None
+                
             
         return self.private_key
 
@@ -77,15 +86,18 @@ class Encryption():
         """Get a device object."""
         if not self.device:
             try:
-                with open("device_id.txt", "r") as device_id:
-                    self.device = Table.get("Device", {"device_id": int(device_id.read())})
+                p = os.path.join(os.path.abspath(self.device_folder), "device_id.txt")
+                with open(p, "r") as device_id:
+                    device_id=device_id.read()
+                    self.device = Table.get("Device", {"device_id": int(device_id)})
                     if not self.device:
-                        self.device = dm.manager.generate_device(int(device_id.read()))
+                        self.device = dm.manager.generate_device(int(device_id))
             except FileNotFoundError:
                 # Generate new device.
                 self.device = dm.manager.generate_device()
                 # Save new device id to file.
-                with open("device_id.txt", "w") as dfile:
+                p = os.path.join(os.path.abspath(self.device_folder), "device_id.txt")
+                with open(p, "w") as dfile:
                     dfile.write(str(self.device.get("device_id")))
         
         return self.device
@@ -98,7 +110,7 @@ class Encryption():
         )
         #public key decode for the database
         status = dm.manager.create_device_user_relation(pem.decode(), user, self.get_device()) 
-        print(status)
+        return status
 
     def read_public_key(self, pem: str):
         public_key = serialization.load_pem_public_key(pem.encode(), default_backend())
@@ -107,11 +119,8 @@ class Encryption():
 
     def encrypt_message(self, message, conversation, sender, other_device_user_rel=None):
         message_obj = dm.manager.create_message(sender, conversation)
-        for user in conversation.get("users"):
-            if not other_device_user_rel:
-                deviceuserrel = dm.manager.get_device_user_rel(user)
-            else:
-                deviceuserrel = other_device_user_rel
+        if other_device_user_rel:
+            deviceuserrel = other_device_user_rel
             for deviceuserrel in deviceuserrel:
                 public_key = self.read_public_key(deviceuserrel.get("public_key"))
                 
@@ -123,8 +132,24 @@ class Encryption():
                         label=None
                     )
                 )
-
+                
                 dm.manager.create_encrypted_message(base64.b64encode(encrypted),message_obj,deviceuserrel.get("id"))
+        else:  
+            for user in conversation.get("users"):
+                deviceuserrel = dm.manager.get_device_user_rel(user)
+                for deviceuserrel in deviceuserrel:
+                    public_key = self.read_public_key(deviceuserrel.get("public_key"))
+                    
+                    encrypted = public_key.encrypt(
+                        message.encode(),
+                        padding.OAEP(
+                            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                            algorithm=hashes.SHA256(),
+                            label=None
+                        )
+                    )
+                    
+                    dm.manager.create_encrypted_message(base64.b64encode(encrypted),message_obj,deviceuserrel.get("id"))
     
     def encrypt_existing_messages_for_other_user(self, encrypted_messages, other_user):
         """Encrypt an existing message with other user's public key."""
@@ -161,11 +186,36 @@ class Encryption():
 
         return original_message.decode()
 
+def authenticated_devices(device_user_rels):
+    durs = []
+    for dur in device_user_rels:
+        durs.append(dur.get("device"))
+        print("1:",dur.get("device"))
+
+    print("Write the number or the device id for the device you want to authenticate when you're done writing commit")
+    
+    to_authenticate=[]
+    while True:
+        dur=input("> ")
+        if dur == "commit":
+            break
+        try:
+            to_authenticate.append(durs[int(dur)+1])
+        except Exception: # Only ValueError and IndexError (:O OR?)
+            for _dur in durs:
+                if _dur.get("device_id") == dur:
+                    to_authenticate.append(_dur)
+            else:
+                print("Device not found")
+    
+    return to_authenticate
+
+
 
 class Command():
     def __init__(self):
         self.user = None
-        self.opened_conversation=None # UNCONVENTIONAL TABLE WITH ADDITIONAL FIELDS: nickname
+        self.opened_conversation=None # UNCONVENTIONAL TABLE WITH ADDITIONAL FIELDS: nickname, user
         self.encryption = Encryption()
         # A Dictionary with the command(s) the user can write as the key and the function it calls as the value.
         self.commands={
@@ -193,7 +243,7 @@ class Command():
     def help(self):
         """prints all the commands"""
         print("_ and spaces are ignored. Please proceed.")
-        for i,command in enumerate(self.commands):
+        for i,command in enumerate(self.commands.values()):
             i = (len(str(len(self.commands)-1))-len(str(i)))*"0" + str(i)
             print(str(i)+":",command)
     
@@ -205,13 +255,13 @@ class Command():
         salt=dm.manager.getsalt(username)
         if not salt:
             print("Username or password is incorrect")
-            return
+            return "username or password incorrect"
         #calls the authenticate function in the database manager
         hashed=hashlib.sha256((password + salt).encode()).hexdigest()
         self.user=dm.manager.authenticate_user(username,hashed)
         if not self.user:
             print("Username or password was incorrect")
-            return
+            return "username or password incorrect"
     
     def register(self):
         """Registers a new user."""
@@ -233,10 +283,10 @@ class Command():
             self.user=dm.manager.registeruser(username,salt,hashed,firstname,lastname)
             if not self.user:
                 print("Username already taken")
-                return
+                return "sername already taken"
         else:
-            print("Password do not match")
-            return
+            print("Passwords do not match")
+            return "passwords do not match"
 
     def open_conversation(self):
         """opens a conversation by setting the opened_conversation to a giving conversation"""
@@ -308,7 +358,9 @@ class Command():
             #foreach
             #if the messages sender is the logged in user - write You:{message} else write {sender}:{message}
             # Sender is converted to a username instead for an id (In DB Manager -> get_messages())
-            if msg.get("sender") == self.user.get("username"):
+            if msg.get("sender") == "":
+                print(f"{self.encryption.decrypt_message(msg.get('text'))}")
+            elif msg.get("sender") == self.user.get("username"):
                 print(f"You: {self.encryption.decrypt_message(msg.get('text'))}")
             else:
                 print(f"{msg.get('sender')}: {self.encryption.decrypt_message(msg.get('text'))}")
@@ -493,9 +545,9 @@ class Command():
             #Save shortcuts in shortcuts fil
             # Save shortcuts.
             # Sejr vil gerne have at shortcuts skal gemmes og lave file calls hver gang. SHAME ON HIM!
-            f = open('shortcuts.txt', 'w')
-            json.dump(self.user_shortcuts,f)
-            f.close()
+            with open('shortcuts.txt', 'w') as f:
+                json.dump(self.user_shortcuts,f)
+
     
     def get_user_obj(self):
         """Get user object."""
@@ -505,16 +557,24 @@ class Command():
             inp = self.command_format(inp)
         
             if inp == "register" or inp == "r":
-                self.register()
+                status = self.register()
+
             elif inp == "login" or inp == "l":
-                self.login()
+                status = self.login()
+                
             elif inp == "shutdown":
                 # If they want to shutdown the program.
-                return False
+                return "shutdown"
             else:
                 print("Try again")
         
-        self.encryption.setup_encryption(self.user)
-        return True
+        status = self.encryption.setup_encryption(self.user)
+        print(status)
+        if status == "Success!":
+            dm.manager.get_not_authenticated_users(self.user,authenticated_devices)
+
+        return status
+
+
 
 commands = Command()

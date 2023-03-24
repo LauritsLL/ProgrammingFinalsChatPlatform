@@ -20,6 +20,7 @@ def get_column_names(tablename):
     columnnames = [col[0] for col in columnnames]
     return columnnames
 
+# Table.get("Friends", {"user2": user.get("id"), "in_process": 1}, filtered=True)
 def get(tablename, flags, column="all", filtered=False):
     query=f"SELECT * FROM {tablename} WHERE "
     for k,v in flags.items():
