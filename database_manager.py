@@ -269,9 +269,9 @@ class DbManager(DbLog):
         for dur in device_user_rels:
             # Creating unconventional table for getting device OBJECT when authenticating!
             dur.set(commit=False, device=Table.get("Device",{"id":dur.get("device")}))
-        to_authenticate = authenticated_devices_function(device_user_rels)
+        to_authenticate = authenticated_devices_function(device_user_rels) # Passed authentication function.
         for dur in to_authenticate:
-            dur.set(authenticated = True)
+            dur.set(authenticated=True)
             
 
 
@@ -531,7 +531,6 @@ class DbManager(DbLog):
             else:
                 username = ""
             # Get specific encrypted message from user.
-            print(deviceuserrel, device)
             obj=Table.get("EncryptedDeviceMessageRelation",{"message":msg.get("id"),"deviceuserrelation":deviceuserrel.get("id")})
             text=obj.get("text") # Get encrypted bytes.
             # Creates unconventional table with username being string and not an id reference (An deletes unused fields) for convenience with main.
@@ -615,6 +614,6 @@ class DbManager(DbLog):
 
     def device_is_authenticated(self, user, device):
         """Check if a corresponding DeviceUserRelation has authenticated=True"""
-        return True if Table.get("DeviceUserRelation", {"user": user.get("id"), "device": device.get("id")}).get("authenticated") else False
+        return Table.get("DeviceUserRelation", {"user": user.get("id"), "device": device.get("id")}).get("authenticated")
 
 manager = DbManager()

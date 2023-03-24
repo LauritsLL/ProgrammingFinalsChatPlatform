@@ -26,7 +26,7 @@ class Encryption():
         self.private_key = None
         self.public_key = None
         self.device = None
-        self.device_folder = "device1"
+        self.device_folder = "device3"
         if not os.path.exists(self.device_folder):
             os.makedirs(self.device_folder)
     
@@ -196,7 +196,7 @@ def authenticated_devices(device_user_rels):
         print(dur.get("device"), "| AUTHORIZED?", "No" if not dur.get("authenticated") else "Yes")
     
     print("Unauthorized login(s) have been found.")
-    print("Please enter one of the labeled numbers into the input below and thereby choose which new devices to authenticate to your user.")
+    print("Please enter one of the ID attributes into the input below and thereby choose which new devices to authenticate to your user.")
     print("OPTIONS:")
     print("shutdown -> Quit application")
     print("done -> Complete setup on unauthorized devices and grant access")
@@ -372,7 +372,7 @@ class Command():
                 print(f"{msg.get('sender')}: {self.encryption.decrypt_message(msg.get('text'))}")
 
     def send_friend_request(self):
-        """Creates a friend request obj with the loggedin user as the sender and a giving user"""
+        """Creates a friend request obj with the logged in user as the sender and a giving user"""
         username=input("Send to username: ")
         #calls the dm.manager.friend_request from the database manager with the giving username and the user_id
         status = dm.manager.friend_request(username, self.user)
@@ -558,7 +558,7 @@ class Command():
     def get_user_obj(self):
         """Get user object."""
         while not self.user:
-            #while there are no user loggedin ask if the want to login or register
+            #while there are no user logged in ask if the want to login or register
             inp=input("Login/Register/Shutdown: ")
             inp = self.command_format(inp)
         
