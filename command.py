@@ -4,6 +4,7 @@ import random as r
 from rich import print
 import rich
 import os
+import sys
 
 import database_manager as dm
 import Table
@@ -25,14 +26,13 @@ class Encryption():
         self.private_key = None
         self.public_key = None
         self.device = None
-        self.device_folder = "device2"
+        self.device_folder = "device1"
         if not os.path.exists(self.device_folder):
             os.makedirs(self.device_folder)
     
     def setup_encryption(self, user):
         self.private_key = self.get_privatekey(user)
         if not self.private_key:
-            print("hej")
             # Generate private key for user-device.
             self.private_key = self.create_privatekey(user)
             self.public_key = self.private_key.public_key()
@@ -44,7 +44,10 @@ class Encryption():
         else:
             self.public_key = self.private_key.public_key()
             self.get_device() # Set up member variable device.
-            return "Success!"
+            if dm.manager.device_is_authenticated(user, self.device):
+                return "Success!"
+            else:
+                return "Device not authenticated"
 
     def create_privatekey(self, user):
 
@@ -189,25 +192,28 @@ class Encryption():
 def authenticated_devices(device_user_rels):
     durs = []
     for dur in device_user_rels:
-        durs.append(dur.get("device"))
-        print("1:",dur.get("device"))
-
-    print("Write the number or the device id for the device you want to authenticate when you're done writing commit")
+        durs.append(dur)
+        print(dur.get("device"), "| AUTHORIZED?", "No" if not dur.get("authenticated") else "Yes")
     
+    print("Unauthorized login(s) have been found.")
+    print("Please enter one of the labeled numbers into the input below and thereby choose which new devices to authenticate to your user.")
+    print("OPTIONS:")
+    print("shutdown -> Quit application")
+    print("done -> Complete setup on unauthorized devices and grant access")
+
     to_authenticate=[]
     while True:
-        dur=input("> ")
-        if dur == "commit":
+        inp=input("> ")
+        if inp == "done":
             break
-        try:
-            to_authenticate.append(durs[int(dur)+1])
-        except Exception: # Only ValueError and IndexError (:O OR?)
-            for _dur in durs:
-                if _dur.get("device_id") == dur:
-                    to_authenticate.append(_dur)
-            else:
-                print("Device not found")
-    
+        elif inp == "shutdown":
+            sys.exit(0)
+        
+        if inp and inp.isdigit() and inp != '0':
+            for dur in durs:
+                if dur.get("device").get("id") == int(inp):
+                    to_authenticate.append(dur)
+
     return to_authenticate
 
 
@@ -569,7 +575,6 @@ class Command():
                 print("Try again")
         
         status = self.encryption.setup_encryption(self.user)
-        print(status)
         if status == "Success!":
             dm.manager.get_not_authenticated_users(self.user,authenticated_devices)
 

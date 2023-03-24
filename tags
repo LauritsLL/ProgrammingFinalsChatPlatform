@@ -31,6 +31,7 @@ accept_friend_request	database_manager.py	/^    def accept_friend_request(self, 
 add_user	command.py	/^    def add_user(self):$/;"	m	class:Command
 add_user_to_conversation	database_manager.py	/^    def add_user_to_conversation(self, current_user, conversation, username):$/;"	m	class:DbManager
 authenticate_user	database_manager.py	/^    def authenticate_user(self, username, hashed):$/;"	m	class:DbManager
+authenticated_devices	command.py	/^def authenticated_devices(device_user_rels):$/;"	f
 c	main.py	/^from command import commands as c$/;"	x	nameref:unknown:commands
 change_name	command.py	/^    def change_name(self):$/;"	m	class:Command
 change_name	database_manager.py	/^    def change_name(self, name, opened_conversation):$/;"	m	class:DbManager
@@ -46,6 +47,7 @@ create_privatekey	command.py	/^    def create_privatekey(self, user):$/;"	m	clas
 decline_friend_request	database_manager.py	/^    def decline_friend_request(self, request):$/;"	m	class:DbManager
 decrypt_message	command.py	/^    def decrypt_message(self,encrypted_message):$/;"	m	class:Encryption
 delete	Table.py	/^    def delete(self):$/;"	m	class:Table
+device_is_authenticated	database_manager.py	/^    def device_is_authenticated(self, user, device):$/;"	m	class:DbManager
 dm	Table.py	/^import database_manager as dm$/;"	I	nameref:module:database_manager
 dm	command.py	/^import database_manager as dm$/;"	I	nameref:module:database_manager
 dm	main.py	/^import database_manager as dm$/;"	I	nameref:module:database_manager
@@ -72,6 +74,7 @@ get_friend_requests	database_manager.py	/^    def get_friend_requests(self, user
 get_friends	database_manager.py	/^    def get_friends(self, user):$/;"	m	class:DbManager
 get_id	Table.py	/^def get_id(tablename): $/;"	f
 get_messages	database_manager.py	/^    def get_messages(self, conversation, user, device):$/;"	m	class:DbManager
+get_not_authenticated_users	database_manager.py	/^    def get_not_authenticated_users(self, user, authenticated_devices_function):$/;"	m	class:DbManager
 get_or_create_deleted_user_obj	database_manager.py	/^    def get_or_create_deleted_user_obj(self):$/;"	m	class:DbManager
 get_privatekey	command.py	/^    def get_privatekey(self, user):$/;"	m	class:Encryption
 get_user_obj	command.py	/^    def get_user_obj(self):$/;"	m	class:Command

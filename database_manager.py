@@ -264,7 +264,7 @@ class DbManager(DbLog):
                 return None
 
     def get_not_authenticated_users(self, user, authenticated_devices_function):
-        device_user_rels=Table.get("DeviceUserRelation",{"user":user.get("id"),"authenticated":False},filtered=True)
+        device_user_rels=Table.get("DeviceUserRelation",{"user": user.get("id"),"authenticated": False},filtered=True)
         if len(device_user_rels) == 0: return
         for dur in device_user_rels:
             # Creating unconventional table for getting device OBJECT when authenticating!
@@ -608,10 +608,13 @@ class DbManager(DbLog):
     def create_device_user_relation(self, publickey_str, user, device):
         if Table.get("DeviceUserRelation", {"user": user.get("id")}):
             Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": False})
-            print("hej igen")
             return "Device not authenticated"
         else:
             Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": True})
             return "Success!"
+
+    def device_is_authenticated(self, user, device):
+        """Check if a corresponding DeviceUserRelation has authenticated=True"""
+        return True if Table.get("DeviceUserRelation", {"user": user.get("id"), "device": device.get("id")}).get("authenticated") else False
 
 manager = DbManager()
