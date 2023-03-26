@@ -605,7 +605,7 @@ class DbManager(DbLog):
         return Table.Table("Device", {"device_id": device_id}) 
 
     def create_device_user_relation(self, publickey_str, user, device):
-        if Table.get("DeviceUserRelation", {"user": user.get("id")}):
+        if Table.get("DeviceUserRelation", {"user": user.get("id")}, filtered=True):
             Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": False})
             return "Device not authenticated"
         else:

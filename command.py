@@ -26,7 +26,7 @@ class Encryption():
         self.private_key = None
         self.public_key = None
         self.device = None
-        self.device_folder = "device3"
+        self.device_folder = "device1"
         if not os.path.exists(self.device_folder):
             os.makedirs(self.device_folder)
     
