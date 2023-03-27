@@ -2,6 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 import Table
 import random as r
+import sys
 
 from DbLog import DbLog
 
@@ -228,9 +229,11 @@ class DbManager(DbLog):
                             passwd=user_password,
                             database=db_name,
                         )
-
-        except Error as e:
-            self.log(f"The error '{e}' occurred", err=True, reason="Couldn't connect to database!")
+        except Exception as e:
+            status = "An error occurred while establishing a connnection to the database. Have you started it yet? (See log for more details)"
+            self.log(f"The error '{e}' occurred", err=True, reason="Couldnt connect to database!")
+            print(status)
+            sys.exit(0)
 
     def execute_query(self, query):
         cursor = self.connection.cursor()
