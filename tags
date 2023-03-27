@@ -31,7 +31,7 @@ accept_friend_request	database_manager.py	/^    def accept_friend_request(self, 
 add_user	command.py	/^    def add_user(self):$/;"	m	class:Command
 add_user_to_conversation	database_manager.py	/^    def add_user_to_conversation(self, current_user, conversation, username):$/;"	m	class:DbManager
 authenticate_user	database_manager.py	/^    def authenticate_user(self, username, hashed):$/;"	m	class:DbManager
-authenticated_devices	command.py	/^def authenticated_devices(device_user_rels):$/;"	f
+authenticated_devices	command.py	/^    def authenticated_devices(self, device_user_rels):$/;"	m	class:Command
 c	main.py	/^from command import commands as c$/;"	x	nameref:unknown:commands
 change_name	command.py	/^    def change_name(self):$/;"	m	class:Command
 change_name	database_manager.py	/^    def change_name(self, name, opened_conversation):$/;"	m	class:DbManager
@@ -47,7 +47,6 @@ create_privatekey	command.py	/^    def create_privatekey(self, user):$/;"	m	clas
 decline_friend_request	database_manager.py	/^    def decline_friend_request(self, request):$/;"	m	class:DbManager
 decrypt_message	command.py	/^    def decrypt_message(self,encrypted_message):$/;"	m	class:Encryption
 delete	Table.py	/^    def delete(self):$/;"	m	class:Table
-device_is_authenticated	database_manager.py	/^    def device_is_authenticated(self, user, device):$/;"	m	class:DbManager
 dm	Table.py	/^import database_manager as dm$/;"	I	nameref:module:database_manager
 dm	command.py	/^import database_manager as dm$/;"	I	nameref:module:database_manager
 dm	main.py	/^import database_manager as dm$/;"	I	nameref:module:database_manager
@@ -80,6 +79,7 @@ get_privatekey	command.py	/^    def get_privatekey(self, user):$/;"	m	class:Encr
 get_user_obj	command.py	/^    def get_user_obj(self):$/;"	m	class:Command
 getsalt	database_manager.py	/^    def getsalt(self,username):$/;"	m	class:DbManager
 help	command.py	/^    def help(self):$/;"	m	class:Command
+is_device_authenticated	database_manager.py	/^    def is_device_authenticated(self, user, device):$/;"	m	class:DbManager
 is_friends_with	database_manager.py	/^    def is_friends_with(self, user, other):$/;"	m	class:DbManager
 leave_conversation	command.py	/^    def leave_conversation(self):$/;"	m	class:Command
 leave_conversation	database_manager.py	/^    def leave_conversation(self, conversation, user, encryption): # 'encryption' for server mess/;"	m	class:DbManager

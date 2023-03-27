@@ -607,13 +607,17 @@ class DbManager(DbLog):
     def create_device_user_relation(self, publickey_str, user, device):
         if Table.get("DeviceUserRelation", {"user": user.get("id")}, filtered=True):
             Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": False})
-            return "Device not authenticated"
+            return False
         else:
             Table.Table("DeviceUserRelation",{"public_key":publickey_str,"device":device.get("id"),"user":user.get("id"), "authenticated": True})
-            return "Success!"
+            return True  
 
-    def device_is_authenticated(self, user, device):
+    def is_device_authenticated(self, user, device):
         """Check if a corresponding DeviceUserRelation has authenticated=True"""
-        return Table.get("DeviceUserRelation", {"user": user.get("id"), "device": device.get("id")}).get("authenticated")
+        check = Table.get("DeviceUserRelation", {"user": user.get("id"), "device": device.get("id")})
+        if check:
+            return check.get("authenticated")
+        else:
+            return None
 
 manager = DbManager()

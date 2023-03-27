@@ -37,17 +37,17 @@ class Encryption():
             self.private_key = self.create_privatekey(user)
             self.public_key = self.private_key.public_key()
             # Send pubk to db.
-            status = self.send_public_key_to_database(user)
+            success = self.send_public_key_to_database(user)
             # No authentication is given per default to new devices.
-            return status
+            return success
         
         else:
             self.public_key = self.private_key.public_key()
             self.get_device() # Set up member variable device.
-            if dm.manager.device_is_authenticated(user, self.device):
-                return "Success!"
+            if dm.manager.is_device_authenticated(user, self.device):
+                return True
             else:
-                return "Device not authenticated"
+                return False 
 
     def create_privatekey(self, user):
 
@@ -189,32 +189,6 @@ class Encryption():
 
         return original_message.decode()
 
-def authenticated_devices(device_user_rels):
-    durs = []
-    for dur in device_user_rels:
-        durs.append(dur)
-        print(dur.get("device"), "| AUTHORIZED?", "No" if not dur.get("authenticated") else "Yes")
-    
-    print("Unauthorized login(s) have been found.")
-    print("Please enter one of the ID attributes into the input below and thereby choose which new devices to authenticate to your user.")
-    print("OPTIONS:")
-    print("shutdown -> Quit application")
-    print("done -> Complete setup on unauthorized devices and grant access")
-
-    to_authenticate=[]
-    while True:
-        inp=input("> ")
-        if inp == "done":
-            break
-        elif inp == "shutdown":
-            sys.exit(0)
-        
-        if inp and inp.isdigit() and inp != '0':
-            for dur in durs:
-                if dur.get("device").get("id") == int(inp):
-                    to_authenticate.append(dur)
-
-    return to_authenticate
 
 
 
@@ -249,7 +223,7 @@ class Command():
     def help(self):
         """prints all the commands"""
         print("_ and spaces are ignored. Please proceed.")
-        for i,command in enumerate(self.commands.values()):
+        for i,command in enumerate(self.commands.keys()):
             i = (len(str(len(self.commands)-1))-len(str(i)))*"0" + str(i)
             print(str(i)+":",command)
     
@@ -261,13 +235,15 @@ class Command():
         salt=dm.manager.getsalt(username)
         if not salt:
             print("Username or password is incorrect")
-            return "username or password incorrect"
+            return False
         #calls the authenticate function in the database manager
         hashed=hashlib.sha256((password + salt).encode()).hexdigest()
         self.user=dm.manager.authenticate_user(username,hashed)
         if not self.user:
             print("Username or password was incorrect")
-            return "username or password incorrect"
+            return False 
+
+        return True
     
     def register(self):
         """Registers a new user."""
@@ -289,10 +265,12 @@ class Command():
             self.user=dm.manager.registeruser(username,salt,hashed,firstname,lastname)
             if not self.user:
                 print("Username already taken")
-                return "sername already taken"
+                return False 
         else:
             print("Passwords do not match")
-            return "passwords do not match"
+            return False
+
+        return True
 
     def open_conversation(self):
         """opens a conversation by setting the opened_conversation to a giving conversation"""
@@ -534,7 +512,10 @@ class Command():
         self.user=None
         self.opened_conversation=None
         self.encryption = Encryption() # New encryption for new user.
-        self.get_user_obj() # Check if new user wants to sign in.
+        l = ["logout"]
+        for i in self.get_user_obj(): # Check if new user wants to sign in.
+            l.append(i)
+        return l
 
     def shortcuts(self):
         s="\n"
@@ -554,32 +535,63 @@ class Command():
             with open('shortcuts.txt', 'w') as f:
                 json.dump(self.user_shortcuts,f)
 
+
+    def authenticated_devices(self, device_user_rels):
+        durs = []
+        for dur in device_user_rels:
+            durs.append(dur)
+            print(dur.get("device"), "| AUTHORIZED?", "No" if not dur.get("authenticated") else "Yes")
+        
+        print("Unauthorized login(s) have been found.")
+        print("Please enter one of the ID attributes into the input below and thereby choose which new devices to authenticate to your user.")
+        print("OPTIONS:")
+        print("shutdown -> Quit application")
+        print("done -> Complete setup on unauthorized devices and grant access")
+
+        to_authenticate=[]
+        while True:
+            inp=input("> ")
+            if inp == "done":
+                break
+            elif inp == "shutdown":
+                sys.exit(0)
+            
+            if inp and inp.isdigit() and inp != '0':
+                for dur in durs:
+                    if dur.get("device").get("id") == int(inp):
+                        # Check if it has already been added.
+                        if not dur in to_authenticate:
+                            to_authenticate.append(dur)
+                        else:
+                            print("Device has already been added")
+            else:
+                print("Invalid input entered.")
+
+        return to_authenticate
     
     def get_user_obj(self):
         """Get user object."""
+        success = True
         while not self.user:
             #while there are no user logged in ask if the want to login or register
             inp=input("Login/Register/Shutdown: ")
             inp = self.command_format(inp)
-        
+            
             if inp == "register" or inp == "r":
-                status = self.register()
-
+                success = self.register()
             elif inp == "login" or inp == "l":
-                status = self.login()
-                
+                success = self.login()
             elif inp == "shutdown":
                 # If they want to shutdown the program.
-                return "shutdown"
+                sys.exit(0)
             else:
                 print("Try again")
         
-        status = self.encryption.setup_encryption(self.user)
-        if status == "Success!":
-            dm.manager.get_not_authenticated_users(self.user,authenticated_devices)
-
-        return status
-
+        encryption_success = self.encryption.setup_encryption(self.user)
+        if success and encryption_success:
+            dm.manager.get_not_authenticated_users(self.user,self.authenticated_devices)
+        
+        return success,encryption_success
 
 
 commands = Command()
