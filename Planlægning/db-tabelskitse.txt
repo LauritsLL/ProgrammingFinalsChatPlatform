@@ -16,7 +16,7 @@ EncryptedDeviceMessageRelation(_id_,*deviceuserrelation* (M-1),*message* (M-1),t
 Message(_id_,*sender*(M-1),*conversation*(M-1),*devicemessagerelation*(M-M))
 Conversation(_id_,*user*(M-Mn),name,*class*(M-1n),*teachers*(M-Mn),con_id)
 UserConversationRelation(_id_,*user* (M-1),*conversation* (M-1),nickname)
-ILUser(_id_,itslearningid,*class*(M-M), *ifTeacher*(1-1n))
+ILUser(_id_,itslearning_id,*class*(M-M), *ifTeacher*(1-1n))
 Teacher(_id_, *conversations*(M-M))
 TeacherConversationRelation(_id_,*teacher* (M-1),*conversation* (M-1))
 Class(_id_,name,*ILuserid*(M-M))

@@ -544,7 +544,6 @@ class Command():
             with open('shortcuts.txt', 'w') as f:
                 json.dump(self.user_shortcuts,f)
 
-
     def authenticated_devices(self, device_user_rels):
         durs = {}
         for i, dur in enumerate(device_user_rels):
@@ -618,7 +617,32 @@ class Command():
         answer = input("> ")
         print(dm.manager.connect_IL_id(self.user,answer))
 
+    def add_ILobj(self):
+        print("admin password")
+        password = input("> ")
+        if password == "crazylongpassword":
+            ilid = input("ILid: ")
+            isTeacher = input("Is teacher: ")
+            dm.manager.create_ILobj(ilid, isTeacher.lower()=="true")
 
+    def create_class(self):
+        print("admin password")
+        password = input("> ")
+        if password == "crazylongpassword":
+            class_name = input("class_name: ")
+            dm.manager.create_class(class_name)
             
+    def add_to_class(self):
+        print("admin password")
+        password = input("> ")
+        if password == "crazylongpassword":
+            while True:
+                class_name = input("class_name: ")
+                ILid = input("ILid: ")
+                print(dm.manager.add_to_class(ILid, class_name))
+                if input("do you want to return (y,n) ") == "y":
+                    break
+
+
 
 commands = Command()
