@@ -16,7 +16,7 @@ class DbManager(DbLog):
         self.username="root"
         self.user_password=""
         self.db_name="chatplatform"
-        self.connection = None
+
         self.write_to_file = WRITE_LOG
         self.debug_print = DEBUG_PRINT
         self.deleted_user = None # Table containing the "Deleted user" table for use when conserving old messages from a user that leaves
@@ -26,8 +26,7 @@ class DbManager(DbLog):
         """Get the throw-away object for deleted and leaving users."""
         if not Table.get("User", {"username": "<deleted_user>"}):
             # Set up "Deleted user" throw-away table.
-            uid = Table.get_id("User")
-            self.deleted_user = Table.Table("User", {"id": uid, "username": self.deleted_username, "firstname": "<Deleted>", "lastname": "<Deleted>", "salt": 0000000000, "password": "PrUaYZS1j1lJIWjJIQHIbFh9I3I8r9tLEKMnMDPqXwZKRsvQT2vrCLd9y27t7s5EmDO0BvUx4SizhPXLh8WFMODvqxQpaRObcXFcwEq2Adq28llrLhAtW64JTQTK8V294bL08yZTid2fE2kkGr5lHcZoPXX8bQFcNjKYbQ9dvNuMtNzLNnpUEqFjf8Ofu6O7hDQ9BAAaS9dZoAYE71mJ75p6v0stDjcE1PQMtRBWux0mvh1AnnYR8Jlb1FX4TJQJ"})
+            self.deleted_user = Table.Table("User", {"username": self.deleted_username, "firstname": "<Deleted>", "lastname": "<Deleted>", "salt": 0000000000, "password": "PrUaYZS1j1lJIWjJIQHIbFh9I3I8r9tLEKMnMDPqXwZKRsvQT2vrCLd9y27t7s5EmDO0BvUx4SizhPXLh8WFMODvqxQpaRObcXFcwEq2Adq28llrLhAtW64JTQTK8V294bL08yZTid2fE2kkGr5lHcZoPXX8bQFcNjKYbQ9dvNuMtNzLNnpUEqFjf8Ofu6O7hDQ9BAAaS9dZoAYE71mJ75p6v0stDjcE1PQMtRBWux0mvh1AnnYR8Jlb1FX4TJQJ"})
         else:
             # Get the existing throw-away object.
             self.deleted_user = Table.get("User", {"username": self.deleted_username})
@@ -39,19 +38,15 @@ class DbManager(DbLog):
         self.log(s)
 
     def setup(self):
-        self.create_connection(self.host_name, self.username, self.user_password)
         # Create database if it doesn't already exists.
         cmd = f"""
         CREATE DATABASE IF NOT EXISTS `{self.db_name}`;
         """
         self.execute_query(cmd)
-        self.connection.close()
-        self.connection = None
         
-        self.create_connection(self.host_name, self.username, self.user_password, self.db_name)
         
         tables={}
-
+        
         tables["IdsTable"] = """
         CREATE TABLE IF NOT EXISTS Ids (
             id INT NOT NULL AUTO_INCREMENT,
@@ -199,7 +194,7 @@ class DbManager(DbLog):
             FOREIGN KEY (conversation) REFERENCES Conversation(id)
         ) ENGINE = InnoDB """
             
-        tables["ClassILAttributestable"] = """
+        tables["ClassILAttributesRelationtable"] = """
         CREATE TABLE IF NOT EXISTS ClassILAttributes (
             id INT NOT NULL,
             ILuserid INT NOT NULL,
@@ -223,29 +218,41 @@ class DbManager(DbLog):
         
     def create_connection(self, host_name, username, user_password, db_name=""):
         try:
-            self.connection = mysql.connector.connect(
+            return mysql.connector.connect(
                             host=host_name,
                             user=username,
                             passwd=user_password,
                             database=db_name,
                         )
         except Exception as e:
-            status = "An error occurred while establishing a connnection to the database. Have you started it yet? (See log for more details)"
-            self.log(f"The error '{e}' occurred", err=True, reason="Couldnt connect to database!")
-            print(status)
-            sys.exit(0)
+            try:
+                # Will be run, if a new database is to be made.
+                return mysql.connector.connect(
+                    host=host_name,
+                    user=username,
+                    passwd=user_password,
+                )
+            except:
+                status = "An error occurred while establishing a connnection to the database. Have you started it yet? (See log for more details)"
+                self.log(f"The error '{e}' occurred", err=True, reason="Couldnt connect to database!")
+                print(status)
+                sys.exit(0)
 
     def execute_query(self, query):
-        cursor = self.connection.cursor()
+        connection = self.create_connection(self.host_name, self.username, self.user_password, self.db_name)
+        cursor = connection.cursor()
         try:
             cursor.execute(query)
-            self.connection.commit()
+            connection.commit()
             self.log("Query executed successfully", reason=f"DB Query \"{query.split()[0]}\"")
         except Error as e:
             self.log(f"The error '{e}' occurred", err=True, reason=f"DB Query \"{query.split()[0]}\"")
+        connection.close()
+        connection = None
 
     def execute_read_query(self, query):
-        cursor = self.connection.cursor()
+        connection = self.create_connection(self.host_name, self.username, self.user_password, self.db_name)
+        cursor = connection.cursor()
         result = None
         try:
             cursor.execute(query)
@@ -254,6 +261,8 @@ class DbManager(DbLog):
             return result
         except Error as e:
             self.log(f"The error '{e}' occurred", err=True, reason=f"DB Query \"{query.split()[0]}\"")
+        connection.close()
+        connection = None
 
     def authenticate_user(self, username, hashed):
         user = Table.get('User', {'username': username})
@@ -368,7 +377,7 @@ class DbManager(DbLog):
             for msg in messages:
                 msg.set(sender=self.deleted_user.get("id"))
             # Append a '{username} left the conversation' as a server message ('sender' == 0)
-            msg_obj = self.create_message(self.user, conversation)
+            msg_obj = self.create_message(1, conversation)
             encrypted = encryption.encrypt_message()
             # NOT DONE TODO 
             return status
@@ -446,14 +455,9 @@ class DbManager(DbLog):
             users.append(Table.get("User", {"id": ucrel.get("user")}))
         
         return users
-
-    def add_user_to_conversation(self, current_user, conversation, username):
-        user_to_add=Table.get("User",{"username":username})
-        if user_to_add is None:
-            return None,"You are not friends with this user or the user does not exist."
-        if not self.is_friends_with(current_user, user_to_add):
-            return None,f"You are not friends with '{username}'."
-        # Enumerating through already added users to modify conversation name.
+    
+    def update_conversation_name(self, conversation, username):
+        """Enumerate through already added users to modify conversation name"""
         name=""
         users = conversation.get("users")
         for i,user in enumerate(users): # Curated list of users from relation.
@@ -462,7 +466,16 @@ class DbManager(DbLog):
             else:
                 name+=user.get("username") + ", " 
         name += username
+        return name
+    
+    def add_user_to_conversation(self, current_user, conversation, username):
+        user_to_add=Table.get("User",{"username":username})
+        if user_to_add is None:
+            return None,"You are not friends with this user or the user does not exist."
+        if not self.is_friends_with(current_user, user_to_add):
+            return None,f"You are not friends with '{username}'."
 
+        name = self.update_conversation_name(conversation, username)
         Table.Table("UserConversationRelation",{"user":user_to_add.get("id"),"nickname":"","conversation":conversation.get("id")})
         conversation.set(name=name)
         conversation.data["users"].append(user_to_add)
@@ -503,14 +516,16 @@ class DbManager(DbLog):
         VALUES (%s, %s, %s, %s)
         """
         data = (Table.get_id("EncryptedDeviceMessageRelation"),deviceuserrel_id, message_obj.get("id"), encrypted)
-        
+        connection = self.create_connection(self.host_name, self.username, self.user_password, self.db_name)
         try:
-            cursor = self.connection.cursor()
+            cursor = connection.cursor()
             cursor.execute(query, data)
-            self.connection.commit()
+            connection.commit()
             self.log("Query executed successfully", reason="Create encrypted message")
         except Error as e:
             self.log(f"The error '{e}' occurred", err=True, reason="Create encrypted message")
+        connection.close()
+        connection = None
     
     def get_encrypted_messages_current_conversation(self, dur_specific_device, opened_conversation):
         """Encrypt messages for a newly added user."""
@@ -622,5 +637,16 @@ class DbManager(DbLog):
             return check.get("authenticated")
         else:
             return None
+           
+    def connect_IL_id(self,user,ILid):
+        ILid_obj=Table.get("ILUser",{"itslearningid":ILid})
+        if not ILid_obj:
+            return "Id not found"
+
+        user.set(ILuserid=ILid_obj.get("id"))
+
+        return "succes"
+        
+        
 
 manager = DbManager()

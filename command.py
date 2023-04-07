@@ -189,9 +189,6 @@ class Encryption():
 
         return original_message.decode()
 
-
-
-
 class Command():
     def __init__(self):
         self.user = None
@@ -204,7 +201,7 @@ class Command():
             "printuser":self.print_user, "sendfriendrequest":self.send_friend_request, "friendrequests":self.friend_requests,
             "friends": self.friends, "makeshortcut":self.make_shortcut,"shortcuts":self.shortcuts,"members":self.members,
             "setnickname":self.set_nickname, "changename":self.change_name,
-            "leaveconversation": self.leave_conversation,
+            "leaveconversation": self.leave_conversation, "shutdown": self.shutdown, "connectILid":self.connect_IL_id,
         }
         try:
             with open("shortcuts.txt", "r") as f:
@@ -213,6 +210,7 @@ class Command():
             self.user_shortcuts={}
     
     def command_format(self, command): return command.replace(" ", "").replace("_", "").lower()
+    def shutdown(self): sys.exit(0)
 
     def list_format(self, l):
         s = ""
@@ -281,19 +279,30 @@ class Command():
             for conversation in conversations:
                 ucrel = Table.get("UserConversationRelation", {"user": self.user.get("id"), "conversation": conversation.get("id")})
                 nickname = ucrel.get("nickname")
-                if nickname is not None:
+                if nickname:
                     print(nickname)
                 else:
                     print(conversation.get("name"))
             #call open_conversation again
             self.open_conversation() # TODO: GRIMT ÆNDR!
             return
-        elif self.command_format(conversationToOpen) == "lsids":
+        elif self.command_format(conversationToOpen) == "info":
             conversations = dm.manager.get_conversations(self.user,get_ids=True)
-            print("{0: <{width}}{1: <{width}}{2: <{width}}".format('name','nickname','id', width=DEFAULT_WS_ADJ))
+            #finds the number of spaces need between the name, the nickname and the id
+            id_offset=len("nickname")
+            nick_offset=len("name")
+            for conversation in conversations:
+                name_len = len(conversation.get("name"))
+                nick_len = len(conversation.get("nickname"))
+                if name_len > nick_offset:
+                    nick_offset=name_len
+                if nick_len > id_offset:
+                    id_offset=nick_len
+
+            print("{0: <{nioff}}| {1: <{idoff}}| {2: <{wow}} |".format('name','nickname','id', nioff=nick_offset+1, idoff=id_offset+1, wow=6))
             for conversation in conversations:
                 con_id=conversation.get('con_id')
-                print("{0: <{width}}{1: <{width}}{2}{3}".format(conversation.get("name"), conversation.get("nickname"), '#' + '0'*(5-len(str(con_id))),con_id, width=DEFAULT_WS_ADJ))
+                print("{0: <{nioff}}| {1: <{idoff}}| {2} |".format(conversation.get("name"), conversation.get("nickname"), '#' + '0'*(5-len(str(con_id)))+str(con_id), nioff=nick_offset+1,idoff=id_offset+1))
             #call open_conversation again
             self.open_conversation() # GRIMT ÆNDR!
             return
@@ -537,13 +546,13 @@ class Command():
 
 
     def authenticated_devices(self, device_user_rels):
-        durs = []
-        for dur in device_user_rels:
-            durs.append(dur)
-            print(dur.get("device"), "| AUTHORIZED?", "No" if not dur.get("authenticated") else "Yes")
+        durs = {}
+        for i, dur in enumerate(device_user_rels):
+            durs[i+1] = dur
+            print(i+1, ": AUTHORIZED?", "No" if not dur.get("authenticated") else "Yes")
         
         print("Unauthorized login(s) have been found.")
-        print("Please enter one of the ID attributes into the input below and thereby choose which new devices to authenticate to your user.")
+        print("Please enter one of the labeled numbers into the input below and thereby choose which new devices to authenticate to your user.")
         print("OPTIONS:")
         print("shutdown -> Quit application")
         print("done -> Complete setup on unauthorized devices and grant access")
@@ -557,8 +566,8 @@ class Command():
                 sys.exit(0)
             
             if inp and inp.isdigit() and inp != '0':
-                for dur in durs:
-                    if dur.get("device").get("id") == int(inp):
+                for i, dur in durs.items():
+                    if i == int(inp):
                         # Check if it has already been added.
                         if not dur in to_authenticate:
                             to_authenticate.append(dur)
@@ -593,5 +602,23 @@ class Command():
         
         return success,encryption_success
 
+    def connect_IL_id(self):
+        ILid = self.user.get("ILuserid")
+        if ILid:
+            print("You already have a ILid connected to your account")
+            while True:
+                answer = input("Do you want to change your ILid [Y/N]>")
+                if answer.lower().strip() == "n":
+                    return
+
+                if answer.lower().strip() == "y":
+                    break
+
+        print("Write the IL id from your profile page on itslearning :)")
+        answer = input("> ")
+        print(dm.manager.connect_IL_id(self.user,answer))
+
+
+            
 
 commands = Command()

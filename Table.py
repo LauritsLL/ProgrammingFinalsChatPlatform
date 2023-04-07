@@ -105,33 +105,20 @@ class Table():
             query=query[0:-1] + ");"
             dm.manager.execute_query(query)
     
-    def save(self, fields={}):
+    def save(self, fields):
         query=f"UPDATE {self.tablename} SET"
-        if not fields:
-            for k,v in self.data.items():
-                if k == "id":
-                    continue
-                if type(v) in typeswithquotes:
-                    query+=f" {k} = '{v}',"
-                else:
-                    query+=f" {k} = {v},"
-            # Remove last comma.
-            query = query[:-1]
-            query+=f" WHERE id = {self.data.get('id')}"
-            dm.manager.execute_query(query)
-        else:
-            # Save specific fields.
-            for k,v in fields.items():
-                if k == "id" or not k in get_column_names(self.tablename):
-                    continue
-                if type(v) in typeswithquotes:
-                    query+=f" {k} = '{v}',"
-                else:
-                    query+=f" {k} = {v},"
-            # Remove last comma.
-            query = query[:-1]
-            query+=f" WHERE id = {self.data.get('id')}"
-            dm.manager.execute_query(query)
+        # Save specific fields.
+        for k,v in fields.items():
+            if k == "id" or not k in get_column_names(self.tablename):
+                continue
+            if type(v) in typeswithquotes:
+                query+=f" {k} = '{v}',"
+            else:
+                query+=f" {k} = {v},"
+        # Remove last comma.
+        query = query[:-1]
+        query+=f" WHERE id = {self.data.get('id')}"
+        dm.manager.execute_query(query)
                  
     def delete(self):
         dm.manager.execute_query(f"DELETE FROM {self.tablename} WHERE id={self.data['id']}")

@@ -6,6 +6,8 @@ def main():
     dm.manager.setup()
     while True:
         success,encryption_success = c.get_user_obj()
+        if success and encryption_success:
+            print("You can write 'help' to show all commands")
         while c.user:
             if encryption_success: # Only if user object has been set.
                 # Enter 'command mode'.
