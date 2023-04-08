@@ -83,7 +83,6 @@ def get(tablename, flags, column="all", filtered=False):
 
 def get_id(tablename): 
     id = dm.manager.execute_read_query(f"SELECT {tablename}_next_id FROM Ids WHERE id = 1")
-    print(id)
     id = id[0][0]
     dm.manager.execute_query(f"UPDATE Ids SET {tablename}_next_id = {id+1} WHERE id = 1")
     return id

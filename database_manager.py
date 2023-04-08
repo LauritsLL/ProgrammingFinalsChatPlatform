@@ -77,7 +77,7 @@ class DbManager(DbLog):
         tables["ILUsertable"]= """
         CREATE TABLE IF NOT EXISTS ILUser ( 
             id INT NOT NULL,
-            itslearning_id VARCHAR(32) NOT NULL,
+            itslearningid VARCHAR(32) NOT NULL,
             isTeacher INT,
             PRIMARY KEY (id),
             FOREIGN KEY (isTeacher) REFERENCES Teacher(id)
@@ -195,7 +195,7 @@ class DbManager(DbLog):
         ) ENGINE = InnoDB """
             
         tables["ClassILAttributesRelationtable"] = """
-        CREATE TABLE IF NOT EXISTS ClassILAttributes (
+        CREATE TABLE IF NOT EXISTS ClassILAttributesRelation (
             id INT NOT NULL,
             ILuserid INT NOT NULL,
             class INT NOT NULL,
@@ -646,27 +646,23 @@ class DbManager(DbLog):
         return "success"
 
     def create_ILobj(self, ilid, isTeacher):
-        ILobj = Table.Table("ILUser",{"itslearning_id":ilid})  
+        ILobj = Table.Table("ILUser",{"itslearningid":ilid})
         if isTeacher:
-            ILobj.set(Teacher=Table.Table("Teacher"))
-
+            ILobj.set(Teacher=Table.Table("Teacher", {}))
 
     def create_class(self, class_name):
         Table.Table("Class",{"name":class_name})
 
     def add_to_class(self, ILid, class_name):
         class_id = Table.get("Class",{"name":class_name})
-        ILUser_id = Table.get("ILUser",{"itslearning_id":ILid})
+        ILUser_id = Table.get("ILUser",{"itslearningid":ILid})
 
         if ILUser_id and class_id:
             Table.Table("ClassILAttributesRelation",{"ILuserid":ILUser_id.get("id"),"class":class_id.get("id")})
-
         elif class_id:
             return "ILUser not found"
-        
         elif ILUser_id:
             return "class_id not found"
-        
         else:
             return "class_id and ILUser not found"
 

@@ -201,7 +201,7 @@ class Command():
             "printuser":self.print_user, "sendfriendrequest":self.send_friend_request, "friendrequests":self.friend_requests,
             "friends": self.friends, "makeshortcut":self.make_shortcut,"shortcuts":self.shortcuts,"members":self.members,
             "setnickname":self.set_nickname, "changename":self.change_name,
-            "leaveconversation": self.leave_conversation, "shutdown": self.shutdown, "connectILid":self.connect_IL_id,
+            "leaveconversation": self.leave_conversation, "shutdown": self.shutdown, "connectilid":self.connect_IL_id,
         }
         try:
             with open("shortcuts.txt", "r") as f:
@@ -607,23 +607,38 @@ class Command():
             print("You already have a ILid connected to your account")
             while True:
                 answer = input("Do you want to change your ILid [Y/N]>")
-                if answer.lower().strip() == "n":
+                check = self.command_format(answer)
+                if check == "n":
                     return
-
-                if answer.lower().strip() == "y":
+                elif check == "y":
                     break
+                else:
+                    print("Invalid input.")
 
         print("Write the IL id from your profile page on itslearning :)")
-        answer = input("> ")
+        answer = int(input("> "))
         print(dm.manager.connect_IL_id(self.user,answer))
 
     def add_ILobj(self):
         print("admin password")
         password = input("> ")
         if password == "crazylongpassword":
-            ilid = input("ILid: ")
-            isTeacher = input("Is teacher: ")
-            dm.manager.create_ILobj(ilid, isTeacher.lower()=="true")
+            ilid, isTeacher = None, None
+            while not ilid or not isTeacher:
+                ilid = input("ILid: ")
+                if not ilid.isdigit():
+                    print("Invalid input.")
+                    ilid = None
+                    continue
+                isTeacher = input("Are you a teacher? (y/n): ")
+                if self.command_format(isTeacher) not in ["y", "n"]:
+                    print("Invalid input")
+                    isTeacher = None
+                    continue
+                else:
+                    isTeacher = self.command_format(isTeacher)
+
+            dm.manager.create_ILobj(int(ilid), isTeacher=="y")
 
     def create_class(self):
         print("admin password")

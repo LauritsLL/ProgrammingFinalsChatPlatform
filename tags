@@ -28,6 +28,9 @@ __init__	command.py	/^    def __init__(self):$/;"	m	class:Command
 __init__	database_manager.py	/^    def __init__(self):$/;"	m	class:DbManager
 __str__	Table.py	/^    def __str__(self):$/;"	m	class:Table
 accept_friend_request	database_manager.py	/^    def accept_friend_request(self, request):$/;"	m	class:DbManager
+add_ILobj	command.py	/^    def add_ILobj(self):$/;"	m	class:Command
+add_to_class	command.py	/^    def add_to_class(self):$/;"	m	class:Command
+add_to_class	database_manager.py	/^    def add_to_class(self, ILid, class_name):$/;"	m	class:DbManager
 add_user	command.py	/^    def add_user(self):$/;"	m	class:Command
 add_user_to_conversation	database_manager.py	/^    def add_user_to_conversation(self, current_user, conversation, username):$/;"	m	class:DbManager
 authenticate_user	database_manager.py	/^    def authenticate_user(self, username, hashed):$/;"	m	class:DbManager
@@ -38,6 +41,11 @@ change_name	database_manager.py	/^    def change_name(self, name, opened_convers
 classes	DbLog.py	/^classes = [n for n in node.body if isinstance(n, ast.ClassDef)]$/;"	v
 command_format	command.py	/^    def command_format(self, command): return command.replace(" ", "").replace("_", "").lower()$/;"	m	class:Command
 commands	command.py	/^commands = Command()$/;"	v
+connect_IL_id	command.py	/^    def connect_IL_id(self):$/;"	m	class:Command
+connect_IL_id	database_manager.py	/^    def connect_IL_id(self,user,ILid):$/;"	m	class:DbManager
+create_ILobj	database_manager.py	/^    def create_ILobj(self, ilid, isTeacher):$/;"	m	class:DbManager
+create_class	command.py	/^    def create_class(self):$/;"	m	class:Command
+create_class	database_manager.py	/^    def create_class(self, class_name):$/;"	m	class:DbManager
 create_connection	database_manager.py	/^    def create_connection(self, host_name, username, user_password, db_name=""):$/;"	m	class:DbManager
 create_conversation	database_manager.py	/^    def create_conversation(self, user, username):$/;"	m	class:DbManager
 create_device_user_relation	database_manager.py	/^    def create_device_user_relation(self, publickey_str, user, device):$/;"	m	class:DbManager
@@ -102,7 +110,7 @@ read_messages	command.py	/^    def read_messages(self):$/;"	m	class:Command
 read_public_key	command.py	/^    def read_public_key(self, pem: str):$/;"	m	class:Encryption
 register	command.py	/^    def register(self):$/;"	m	class:Command
 registeruser	database_manager.py	/^    def registeruser(self, username, salt, hashed, firstname, lastname):$/;"	m	class:DbManager
-save	Table.py	/^    def save(self, fields={}):$/;"	m	class:Table
+save	Table.py	/^    def save(self, fields):$/;"	m	class:Table
 send_friend_request	command.py	/^    def send_friend_request(self):$/;"	m	class:Command
 send_message	command.py	/^    def send_message(self):$/;"	m	class:Command
 send_public_key_to_database	command.py	/^    def send_public_key_to_database(self, user):$/;"	m	class:Encryption
@@ -112,5 +120,7 @@ set_nickname	database_manager.py	/^    def set_nickname(self, user, opened_conve
 setup	database_manager.py	/^    def setup(self):$/;"	m	class:DbManager
 setup_encryption	command.py	/^    def setup_encryption(self, user):$/;"	m	class:Encryption
 shortcuts	command.py	/^    def shortcuts(self):$/;"	m	class:Command
+shutdown	command.py	/^    def shutdown(self): sys.exit(0)$/;"	m	class:Command
 start_conversation	command.py	/^    def start_conversation(self):$/;"	m	class:Command
 typeswithquotes	Table.py	/^typeswithquotes=[type("")]$/;"	v
+update_conversation_name	database_manager.py	/^    def update_conversation_name(self, conversation, username):$/;"	m	class:DbManager
