@@ -7,7 +7,6 @@ from DbLog import DbLog
 
 typeswithquotes=[type("")]
 
-
 def get_column_names(tablename):
     """Return column names of specified table."""
     cmd = f"""
@@ -20,7 +19,7 @@ def get_column_names(tablename):
     columnnames = [col[0] for col in columnnames]
     return columnnames
 
-# Table.get("Friends", {"user2": user.get("id"), "in_process": 1}, filtered=True)
+# EKSEMPEL: Table.get("Friends", {"user2": user.get("id"), "in_process": 1}, filtered=True)
 def get(tablename, flags, column="all", filtered=False):
     query=f"SELECT * FROM {tablename} WHERE "
     for k,v in flags.items():
@@ -29,6 +28,7 @@ def get(tablename, flags, column="all", filtered=False):
         else:
             query+=f"{k}={v} AND "
     
+    # Remove excess ' AND '
     query=query[:-5]
 
     result=dm.manager.execute_read_query(query)
@@ -86,6 +86,7 @@ def get_id(tablename):
     dm.manager.execute_query(f"UPDATE Ids SET {tablename}_next_id = {id+1} WHERE id = 1")
     return id
 
+
 class Table():
     def __init__(self, tablename, data, commit=True):
         self.tablename=tablename
@@ -122,7 +123,7 @@ class Table():
                  
     def delete(self):
         dm.manager.execute_query(f"DELETE FROM {self.tablename} WHERE id={self.data['id']}")
-    
+
     def get(self, field_name):
         """Get field name from table"""
         try:

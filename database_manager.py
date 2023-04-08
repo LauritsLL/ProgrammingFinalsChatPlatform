@@ -479,6 +479,7 @@ class DbManager(DbLog):
         Table.Table("UserConversationRelation",{"user":user_to_add.get("id"),"nickname":"","conversation":conversation.get("id")})
         conversation.set(name=name)
         conversation.data["users"].append(user_to_add)
+        users = conversation.get("users")
         if len(users)==2:
             # Set the general name for conversation.
             conversation.set(name=name)
@@ -558,7 +559,7 @@ class DbManager(DbLog):
 
     def friend_request(self, username, user):
         if username == user.get("username"):
-            return "ARE U SO SAD YOU WANT TO FRIEND REQUEST YOURSELF? ARE YOU SH*TT*NG YOUR PANTS AT YOUR MOM'S HOME??! GET A F'IN LIFE!"
+            return "Why would you friend request yourself? Don't you have any friends? I will be your friend :))"
         user_to_request = Table.get("User", {'username': username})
         if not user_to_request:
             return "User not found"
