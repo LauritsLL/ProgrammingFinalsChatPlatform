@@ -214,8 +214,7 @@ class DbManager(DbLog):
             self.execute_query("INSERT INTO Ids () VALUES ()")
 
         self.get_or_create_deleted_user_obj()
-        
-        
+            
     def create_connection(self, host_name, username, user_password, db_name=""):
         try:
             return mysql.connector.connect(
@@ -285,8 +284,6 @@ class DbManager(DbLog):
         for dur in to_authenticate:
             dur.set(authenticated=True)
             
-
-
     def getsalt(self,username):
         # Gets single field.
         u = Table.get("User",{"username":username})
@@ -646,8 +643,31 @@ class DbManager(DbLog):
 
         user.set(ILuserid=ILid_obj.get("id"))
 
-        return "succes"
+        return "success"
+
+    def create_ILobj(self, ilid, isTeacher):
+        ILobj = Table.Table("ILUser",{"itslearning_id":ilid})  
+        if isTeacher:
+            ILobj.set(Teacher=Table.Table("Teacher"))
+
+
+    def create_class(self, class_name):
+        Table.Table("Class",{"name":class_name})
+
+    def add_to_class(self, ILid, class_name):
+        class_id = Table.get("Class",{"name":class_name})
+        ILUser_id = Table.get("ILUser",{"itslearning_id":ILid})
+
+        if ILUser_id and class_id:
+            Table.Table("ClassILAttributesRelation",{"ILuserid":ILUser_id.get("id"),"class":class_id.get("id")})
+
+        elif class_id:
+            return "ILUser not found"
         
+        elif ILUser_id:
+            return "class_id not found"
         
+        else:
+            return "class_id and ILUser not found"
 
 manager = DbManager()
