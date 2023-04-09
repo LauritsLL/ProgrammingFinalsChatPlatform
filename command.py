@@ -201,7 +201,7 @@ class Command():
             "printuser":self.print_user, "sendfriendrequest":self.send_friend_request, "friendrequests":self.friend_requests,
             "friends": self.friends, "makeshortcut":self.make_shortcut,"shortcuts":self.shortcuts,"members":self.members,
             "setnickname":self.set_nickname, "changename":self.change_name,
-            "leaveconversation": self.leave_conversation, "shutdown": self.shutdown, "connectilid":self.connect_IL_id,
+            "leaveconversation": self.leave_conversation, "shutdown": self.shutdown, "connectilid":self.connect_IL_id, "clear": self.clear_scr,
         }
         try:
             with open("shortcuts.txt", "r") as f:
@@ -211,6 +211,7 @@ class Command():
     
     def command_format(self, command): return command.replace(" ", "").replace("_", "").lower()
     def shutdown(self): sys.exit(0)
+    def clear_scr(self): os.system("clear")
 
     def list_format(self, l):
         s = ""

@@ -62,7 +62,7 @@ class DbManager(DbLog):
             DeviceUserRelation_next_id INT NOT NULL DEFAULT 1,
             EncryptedDeviceMessageRelation_next_id INT NOT NULL DEFAULT 1,
             UserConversationRelation_next_id INT NOT NULL DEFAULT 1,
-            ClassILAttributes_next_id INT NOT NULL DEFAULT 1,
+            ClassILAttributesRelation_next_id INT NOT NULL DEFAULT 1,
             PRIMARY KEY (id)
         ) ENGINE = InnoDB
         """
@@ -426,7 +426,7 @@ class DbManager(DbLog):
         for conversation in conversations:
             # Only if nicknames and names aren't the same. Else duplicates come.
             if not conversation.get("name") in ucrel_nicknames: 
-                ucrel.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")}))
+                ucrels.append(Table.get("UserConversationRelation",{"conversation":conversation.get("id"),"user":user.get("id")}))
         
         if len(ucrels) > 1:
             return None,"More than one conversation with that name"
