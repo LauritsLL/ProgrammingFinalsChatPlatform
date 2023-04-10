@@ -203,6 +203,9 @@ class Command():
             "setnickname":self.set_nickname, "changename":self.change_name,
             "leaveconversation": self.leave_conversation, "shutdown": self.shutdown, "connectilid":self.connect_IL_id, "clear": self.clear_scr,
         }
+        self.admin_commands={
+            "addilobj":self.add_ILobj,"createclass":self.create_class,"addtoclass":self.add_to_class
+        }
         try:
             with open("shortcuts.txt", "r") as f:
                 self.user_shortcuts=json.loads(f.read())
@@ -265,6 +268,13 @@ class Command():
             if not self.user:
                 print("Username already taken")
                 return False 
+            print(self.user)
+            print(self.user.get("admin"))
+            if self.user.get("admin"):
+                print("You are loggedin as an adminaccount")
+                self.commands += self.admin_commands
+            
+
         else:
             print("Passwords do not match")
             return False
@@ -620,6 +630,8 @@ class Command():
         answer = int(input("> "))
         print(dm.manager.connect_IL_id(self.user,answer))
 
+    
+    #for admin 
     def add_ILobj(self):
         print("admin password")
         password = input("> ")
@@ -658,7 +670,6 @@ class Command():
                 print(dm.manager.add_to_class(ILid, class_name))
                 if input("do you want to return (y,n) ") == "y":
                     break
-
 
 
 commands = Command()

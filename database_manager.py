@@ -92,6 +92,7 @@ class DbManager(DbLog):
             lastname VARCHAR(64) NOT NULL,
             salt VARCHAR(10) NOT NULL,
             password VARCHAR(256) NOT NULL,
+            admin BOOL NOT NULL DEFUALT 0,
             ILuserid INT,
             PRIMARY KEY (id),
             FOREIGN KEY (ILuserid) REFERENCES ILUser(id)
