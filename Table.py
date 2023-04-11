@@ -8,7 +8,7 @@ from DbLog import DbLog
 typeswithquotes=[type("")]
 
 def get_column_names(tablename):
-    """Return column names of specified table."""
+    """UTILITY_FUNC: Return column names of specified table."""
     cmd = f"""
     SELECT COLUMN_NAME
     FROM INFORMATION_SCHEMA.COLUMNS 
@@ -94,6 +94,7 @@ class Table():
         self.data=data
 
         if commit:
+            # By default update Table to database.
             self.data["id"]=get_id(tablename)
             query=f"INSERT INTO {tablename} ("
             for k,v in self.data.items():
@@ -117,7 +118,7 @@ class Table():
                 query+=f" {k} = '{v}',"
             else:
                 query+=f" {k} = {v},"
-        # Remove last comma.
+        # Remove excess comma.
         query = query[:-1]
         query+=f" WHERE id = {self.data.get('id')}"
         dm.manager.execute_query(query)

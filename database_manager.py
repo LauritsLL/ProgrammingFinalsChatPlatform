@@ -375,8 +375,8 @@ class DbManager(DbLog):
             for msg in messages:
                 msg.set(sender=self.deleted_user.get("id"))
             # Append a '{username} left the conversation' as a server message ('sender' == 0)
-            msg_obj = self.create_message(1, conversation)
-            encrypted = encryption.encrypt_message()
+            #msg_obj = self.create_message(1, conversation)
+            #encrypted = encryption.encrypt_message()
             # NOT DONE TODO 
             return status
         else:
