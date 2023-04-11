@@ -13,31 +13,22 @@ def main():
                 # Enter 'command mode'.
                 command=input("Command: ")
                 command = c.command_format(command)
-                if command == "addilobj":
-                    c.add_ILobj()
-
-                elif command == "createclass":
-                    c.create_class()
-
-                elif command == "addtoclass":
-                    c.add_to_class()
-
-                else:
-                    try:
-                        s = c.commands[command]()
+                
+                try:
+                    s = c.commands[command]()
+                    if not s is None:
+                        if s[0] == "logout":
+                            success = s[1]
+                            encryption_success = s[2]
+                except KeyError:
+                    try:    
+                        s = c.commands[c.user_shortcuts[command]]()
                         if not s is None:
                             if s[0] == "logout":
                                 success = s[1]
                                 encryption_success = s[2]
                     except KeyError:
-                        try:    
-                            s = c.commands[c.user_shortcuts[command]]()
-                            if not s is None:
-                                if s[0] == "logout":
-                                    success = s[1]
-                                    encryption_success = s[2]
-                        except KeyError:
-                            print("Command not found. Use the command 'help' for more info.")
+                        print("Command not found. Use the command 'help' for more info.")
             else: 
                 if success:
                     print("LOGGED IN")

@@ -268,11 +268,8 @@ class Command():
             if not self.user:
                 print("Username already taken")
                 return False 
-            print(self.user)
-            print(self.user.get("admin"))
-            if self.user.get("admin"):
-                print("You are loggedin as an adminaccount")
-                self.commands += self.admin_commands
+            
+
             
 
         else:
@@ -606,6 +603,10 @@ class Command():
             else:
                 print("Try again")
         
+                    
+        if self.user.get("admin"):
+            print("You are loggedin as an adminaccount")
+            self.commands.update(self.admin_commands)
         encryption_success = self.encryption.setup_encryption(self.user)
         if success and encryption_success:
             dm.manager.get_not_authenticated_users(self.user,self.authenticated_devices)
@@ -633,43 +634,34 @@ class Command():
     
     #for admin 
     def add_ILobj(self):
-        print("admin password")
-        password = input("> ")
-        if password == "crazylongpassword":
-            ilid, isTeacher = None, None
-            while not ilid or not isTeacher:
-                ilid = input("ILid: ")
-                if not ilid.isdigit():
-                    print("Invalid input.")
-                    ilid = None
-                    continue
-                isTeacher = input("Are you a teacher? (y/n): ")
-                if self.command_format(isTeacher) not in ["y", "n"]:
-                    print("Invalid input")
-                    isTeacher = None
-                    continue
-                else:
-                    isTeacher = self.command_format(isTeacher)
+        ilid, isTeacher = None, None
+        while not ilid or not isTeacher:
+            ilid = input("ILid: ")
+            if not ilid.isdigit():
+                print("Invalid input.")
+                ilid = None
+                continue
+            isTeacher = input("Are you a teacher? (y/n): ")
+            if self.command_format(isTeacher) not in ["y", "n"]:
+                print("Invalid input")
+                isTeacher = None
+                continue
+            else:
+                isTeacher = self.command_format(isTeacher)
 
-            dm.manager.create_ILobj(int(ilid), isTeacher=="y")
+        dm.manager.create_ILobj(int(ilid), isTeacher=="y")
 
     def create_class(self):
-        print("admin password")
-        password = input("> ")
-        if password == "crazylongpassword":
-            class_name = input("class_name: ")
-            dm.manager.create_class(class_name)
+        class_name = input("class_name: ")
+        dm.manager.create_class(class_name)
             
     def add_to_class(self):
-        print("admin password")
-        password = input("> ")
-        if password == "crazylongpassword":
-            while True:
-                class_name = input("class_name: ")
-                ILid = input("ILid: ")
-                print(dm.manager.add_to_class(ILid, class_name))
-                if input("do you want to return (y,n) ") == "y":
-                    break
+        while True:
+            class_name = input("class_name: ")
+            ILid = input("ILid: ")
+            print(dm.manager.add_to_class(ILid, class_name))
+            if input("do you want to return (y,n) ") == "y":
+                break
 
 
 commands = Command()

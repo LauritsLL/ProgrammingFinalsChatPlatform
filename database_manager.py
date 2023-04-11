@@ -92,7 +92,7 @@ class DbManager(DbLog):
             lastname VARCHAR(64) NOT NULL,
             salt VARCHAR(10) NOT NULL,
             password VARCHAR(256) NOT NULL,
-            admin BOOL NOT NULL DEFUALT 0,
+            admin BOOL NOT NULL,
             ILuserid INT,
             PRIMARY KEY (id),
             FOREIGN KEY (ILuserid) REFERENCES ILUser(id)
@@ -298,7 +298,7 @@ class DbManager(DbLog):
         if user is None:
             # User is by default authenticated when registering first time.
             user =Table.Table("User",
-                {"username":username,"salt":salt, "password":hashed,"firstname":firstname,"lastname":lastname})
+                {"username":username,"salt":salt, "password":hashed,"firstname":firstname,"lastname":lastname, "admin":0})
 
             return user
         else:
