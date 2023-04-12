@@ -192,7 +192,7 @@ class Encryption():
 class Command():
     def __init__(self):
         self.user = None
-        self.opened_conversation=None # UNCONVENTIONAL TABLE WITH ADDITIONAL FIELDS: nickname, user
+        self.opened_conversation=None # UNCONVENTIONAL TABLE WITH ADDITIONAL FIELDS: nickname, users
         self.encryption = Encryption()
         # A Dictionary with the command(s) the user can write as the key and the function it calls as the value.
         self.commands={
@@ -605,7 +605,7 @@ class Command():
         
                     
         if self.user.get("admin"):
-            print("You are loggedin as an adminaccount")
+            print("You are logged in as an administrative account. Please proceed.")
             self.commands.update(self.admin_commands)
         encryption_success = self.encryption.setup_encryption(self.user)
         if success and encryption_success:
@@ -659,8 +659,9 @@ class Command():
         while True:
             class_name = input("class_name: ")
             ILid = input("ILid: ")
-            print(dm.manager.add_to_class(ILid, class_name))
-            if input("do you want to return (y,n) ") == "y":
+            res = dm.manager.add_to_class(ILid, class_name)
+            print(res if res and isinstance(res, str) else "Failed adding ILid to class.")
+            if self.command_format(input("Do you want to return (y,n) ")) == "y":
                 break
 
 

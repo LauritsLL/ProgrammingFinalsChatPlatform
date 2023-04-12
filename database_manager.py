@@ -361,10 +361,23 @@ class DbManager(DbLog):
                 self.log(status, reason="Success create conversation.")
                 return status
     
-    def leave_conversation(self, conversation, user, encryption): # 'encryption' for server messages.
+    def leave_conversation(self, conversation, user):
         """Leave the conversation for good with user received."""
         # Get UserConversationRelation from user that wants to leave and set the new user to be the default "Deleted user" which resides in the DB on setup()
         # Basically "deletes" conversation for the leaving user.
+        # If user is the last in conversation delete it entirely.
+        if len(conversation.get("users")) == 1:
+            # Confirm deletion.
+            print("LAST USER IN CONVERSATION! - If user leaves, conversation will be deleted permanently and never to be recovered.\n")
+            confirm = input("You are the last user in this conversation. Do you wish to proceed?").lower().strip()
+            if confirm == "y":
+               # Delete conversation and foreign keys.
+               Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")}).delete()
+               conversation.delete()
+               return "Successfully deleted conversation."
+            else:
+               return "Returned without any changes."
+        
         ucrel = Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")})
         ucrel.set(user=self.deleted_user.get("id"))
         if not Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")}):
@@ -649,7 +662,7 @@ class DbManager(DbLog):
     def create_ILobj(self, ilid, isTeacher):
         ILobj = Table.Table("ILUser",{"itslearningid":ilid})
         if isTeacher:
-            ILobj.set(Teacher=Table.Table("Teacher", {}))
+            ILobj.set(Teacher=Table.Table("Teacher", {})) # TODO: BLIVER TIL NONE UANSET OM DEN ER IKKE SAT ELLER SAT SÅDAN!!!!
 
     def create_class(self, class_name):
         Table.Table("Class",{"name":class_name})

@@ -6,6 +6,9 @@ Make some logic for classes and a group of students.
 command.py: Linje 77, 127, 132, 244, 329, 346, 357, 443, 446
 Der benyttes DB-funktionalitet. Flyt.
 
+4:
+TODO: Uanset hvad så gemmes isTeacher under addilobj som None, også selvom table gemmer den med {} !! Fiks!
+
 EKSTRA:
 kryptering:https://nitratine.net/blog/post/asymmetric-encryption-and-decryption-in-python/
 KUNNE HAVE BRUGT AES256: https://blog.boot.dev/cryptography/aes-256-cipher-python-cryptography-examples/
