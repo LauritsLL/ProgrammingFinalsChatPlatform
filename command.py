@@ -433,7 +433,7 @@ class Command():
                         print(c)
 
     def start_conversation(self):
-        if self.get("admin"):
+        if self.user.get("admin"):
             is_class = input("Do you want to create a class conversation (y/n) ")
             if is_class.lower().strip() == "y":
                 class_name=input("Class name: ")
