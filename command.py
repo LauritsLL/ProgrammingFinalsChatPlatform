@@ -26,7 +26,7 @@ class Encryption():
         self.private_key = None
         self.public_key = None
         self.device = None
-        self.device_folder = "device2" # For debugging different devices.
+        self.device_folder = "device1" # For debugging different devices.
         if not os.path.exists(self.device_folder):
             os.makedirs(self.device_folder)
     
@@ -448,7 +448,7 @@ class Command():
     
     def leave_conversation_callback(self):
         print("LAST USER IN CONVERSATION! - If user leaves, conversation will be deleted permanently and never to be recovered.\n")
-        confirm = input("You are the last user in this conversation. Do you wish to proceed?").lower().strip()
+        confirm = input("You are the last user in this conversation. Do you wish to proceed? ").lower().strip()
         return confirm
 
 

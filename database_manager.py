@@ -371,7 +371,7 @@ class DbManager(DbLog):
         # Get UserConversationRelation from user that wants to leave and set the new user to be the default "Deleted user" which resides in the DB on setup()
         # Basically "deletes" conversation for the leaving user.
         # If user is the last in conversation delete it entirely.
-        if len(conversation.get("users")) == 1:
+        if len([u for u in conversation.get("users") if u.get("username") != self.deleted_username]) == 1:
             # Confirm deletion.
             confirm = user_confirm_callback()
             if confirm == "y":

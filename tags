@@ -47,6 +47,7 @@ connect_IL_id	database_manager.py	/^    def connect_IL_id(self,user,ILid):$/;"	m
 create_ILobj	database_manager.py	/^    def create_ILobj(self, ilid, isTeacher):$/;"	m	class:DbManager
 create_class	command.py	/^    def create_class(self):$/;"	m	class:Command
 create_class	database_manager.py	/^    def create_class(self, class_name):$/;"	m	class:DbManager
+create_class_conversation	database_manager.py	/^    def create_class_conversation(self, name, class_id):$/;"	m	class:DbManager
 create_connection	database_manager.py	/^    def create_connection(self, host_name, username, user_password, db_name=""):$/;"	m	class:DbManager
 create_conversation	database_manager.py	/^    def create_conversation(self, user, username):$/;"	m	class:DbManager
 create_device_user_relation	database_manager.py	/^    def create_device_user_relation(self, publickey_str, user, device):$/;"	m	class:DbManager
@@ -92,7 +93,8 @@ help	command.py	/^    def help(self):$/;"	m	class:Command
 is_device_authenticated	database_manager.py	/^    def is_device_authenticated(self, user, device):$/;"	m	class:DbManager
 is_friends_with	database_manager.py	/^    def is_friends_with(self, user, other):$/;"	m	class:DbManager
 leave_conversation	command.py	/^    def leave_conversation(self):$/;"	m	class:Command
-leave_conversation	database_manager.py	/^    def leave_conversation(self, conversation, user):$/;"	m	class:DbManager
+leave_conversation	database_manager.py	/^    def leave_conversation(self, conversation, user, user_confirm_callback):$/;"	m	class:DbManager
+leave_conversation_callback	command.py	/^    def leave_conversation_callback(self):$/;"	m	class:Command
 list_format	command.py	/^    def list_format(self, l):$/;"	m	class:Command
 list_format	database_manager.py	/^    def list_format(self, l):$/;"	m	class:DbManager
 log	DbLog.py	/^    def log(self, *data, err=False, reason=None):$/;"	m	class:DbLog
