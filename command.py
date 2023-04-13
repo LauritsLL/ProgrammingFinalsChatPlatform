@@ -26,7 +26,7 @@ class Encryption():
         self.private_key = None
         self.public_key = None
         self.device = None
-        self.device_folder = "device1" # For debugging different devices.
+        self.device_folder = "device2" # For debugging different devices.
         if not os.path.exists(self.device_folder):
             os.makedirs(self.device_folder)
     
@@ -268,10 +268,6 @@ class Command():
             if not self.user:
                 print("Username already taken")
                 return False 
-            
-
-            
-
         else:
             print("Passwords do not match")
             return False
@@ -603,8 +599,7 @@ class Command():
             else:
                 print("Try again")
         
-                    
-        if self.user.get("admin"):
+        if self.user.get("admin") == 1:
             print("You are logged in as an administrative account. Please proceed.")
             self.commands.update(self.admin_commands)
         encryption_success = self.encryption.setup_encryption(self.user)

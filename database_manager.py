@@ -24,7 +24,7 @@ class DbManager(DbLog):
     
     def get_or_create_deleted_user_obj(self):
         """Get the throw-away object for deleted and leaving users."""
-        if not Table.get("User", {"username": "<deleted_user>"}):
+        if not Table.get("User", {"username": self.deleted_username}):
             # Set up "Deleted user" throw-away table.
             self.deleted_user = Table.Table("User", {"username": self.deleted_username, "firstname": "<Deleted>", "lastname": "<Deleted>", "salt": 0000000000, "password": "PrUaYZS1j1lJIWjJIQHIbFh9I3I8r9tLEKMnMDPqXwZKRsvQT2vrCLd9y27t7s5EmDO0BvUx4SizhPXLh8WFMODvqxQpaRObcXFcwEq2Adq28llrLhAtW64JTQTK8V294bL08yZTid2fE2kkGr5lHcZoPXX8bQFcNjKYbQ9dvNuMtNzLNnpUEqFjf8Ofu6O7hDQ9BAAaS9dZoAYE71mJ75p6v0stDjcE1PQMtRBWux0mvh1AnnYR8Jlb1FX4TJQJ"})
         else:
@@ -92,7 +92,7 @@ class DbManager(DbLog):
             lastname VARCHAR(64) NOT NULL,
             salt VARCHAR(10) NOT NULL,
             password VARCHAR(256) NOT NULL,
-            admin BOOL NOT NULL,
+            admin BOOL NOT NULL DEFAULT 0,
             ILuserid INT,
             PRIMARY KEY (id),
             FOREIGN KEY (ILuserid) REFERENCES ILUser(id)
@@ -298,8 +298,7 @@ class DbManager(DbLog):
         if user is None:
             # User is by default authenticated when registering first time.
             user =Table.Table("User",
-                {"username":username,"salt":salt, "password":hashed,"firstname":firstname,"lastname":lastname, "admin":0})
-
+                {"username":username,"salt":salt, "password":hashed,"firstname":firstname,"lastname":lastname})
             return user
         else:
             return None

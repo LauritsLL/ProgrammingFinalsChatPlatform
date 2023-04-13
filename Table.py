@@ -87,11 +87,37 @@ def get_id(tablename):
     dm.manager.execute_query(f"UPDATE Ids SET {tablename}_next_id = {id+1} WHERE id = 1")
     return id
 
+def get_record_default_value(db_name, tablename, column_name):
+    """Get the initial default value (if any) for a corresponding table and column."""
+    # Returns None (NULL) if no default value was found.
+    cmd = f"""
+SELECT 
+    COLUMN_DEFAULT
+FROM
+    INFORMATION_SCHEMA.COLUMNS
+WHERE
+  TABLE_SCHEMA = '{db_name}' 
+  AND TABLE_NAME = '{tablename}'
+  AND COLUMN_NAME = '{column_name}';
+    """
+    res = dm.manager.execute_read_query(cmd)
+    res = res[0][0]
+    if res == "NULL" or res is None:
+        return None
+    else:
+        return res
 
 class Table():
     def __init__(self, tablename, data, commit=True):
         self.tablename=tablename
         self.data=data
+
+        # Remember to get possible defaults.
+        columns = get_column_names(tablename)
+        for d in columns:
+            default = get_record_default_value('chatplatform', tablename, d)
+            if default: # None if no default.
+                self.data[d] = default
 
         if commit:
             # By default update Table to database.
@@ -107,7 +133,7 @@ class Table():
                     query+=f"{v},"
             query=query[0:-1] + ");"
             dm.manager.execute_query(query)
-    
+
     def save(self, fields):
         query=f"UPDATE {self.tablename} SET"
         # Save specific fields.

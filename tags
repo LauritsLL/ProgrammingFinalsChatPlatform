@@ -85,13 +85,14 @@ get_messages	database_manager.py	/^    def get_messages(self, conversation, user
 get_not_authenticated_users	database_manager.py	/^    def get_not_authenticated_users(self, user, authenticated_devices_function):$/;"	m	class:DbManager
 get_or_create_deleted_user_obj	database_manager.py	/^    def get_or_create_deleted_user_obj(self):$/;"	m	class:DbManager
 get_privatekey	command.py	/^    def get_privatekey(self, user):$/;"	m	class:Encryption
+get_record_default_value	Table.py	/^def get_record_default_value(db_name, tablename, column_name):$/;"	f
 get_user_obj	command.py	/^    def get_user_obj(self):$/;"	m	class:Command
 getsalt	database_manager.py	/^    def getsalt(self,username):$/;"	m	class:DbManager
 help	command.py	/^    def help(self):$/;"	m	class:Command
 is_device_authenticated	database_manager.py	/^    def is_device_authenticated(self, user, device):$/;"	m	class:DbManager
 is_friends_with	database_manager.py	/^    def is_friends_with(self, user, other):$/;"	m	class:DbManager
 leave_conversation	command.py	/^    def leave_conversation(self):$/;"	m	class:Command
-leave_conversation	database_manager.py	/^    def leave_conversation(self, conversation, user, encryption): # 'encryption' for server mess/;"	m	class:DbManager
+leave_conversation	database_manager.py	/^    def leave_conversation(self, conversation, user):$/;"	m	class:DbManager
 list_format	command.py	/^    def list_format(self, l):$/;"	m	class:Command
 list_format	database_manager.py	/^    def list_format(self, l):$/;"	m	class:DbManager
 log	DbLog.py	/^    def log(self, *data, err=False, reason=None):$/;"	m	class:DbLog
