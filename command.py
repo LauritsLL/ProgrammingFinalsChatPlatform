@@ -433,17 +433,32 @@ class Command():
                         print(c)
 
     def start_conversation(self):
+        if self.get("admin"):
+            is_class = input("Do you want to create a class conversation (y/n) ")
+            if is_class.lower().strip() == "y":
+                class_name=input("Class name: ")
+                class_id=input("Class_id: ")
+                status = dm.manager.create_class_conversation(class_name, class_id)
+                print(status)
+                return
+            
         username=input("With username: ")
         status = dm.manager.create_conversation(self.user,username)
         print(status)
     
+    def leave_conversation_callback(self):
+        print("LAST USER IN CONVERSATION! - If user leaves, conversation will be deleted permanently and never to be recovered.\n")
+        confirm = input("You are the last user in this conversation. Do you wish to proceed?").lower().strip()
+        return confirm
+
+
     def leave_conversation(self):
         if self.opened_conversation:
             validate = input("Are you sure you want to leave this conversation (CANNOT BE UNDONE!)? (y/N) ")
             validate = validate.strip().lower()
             if validate == "y" or validate == "yes":
                 # Leaving conversation...
-                status = dm.manager.leave_conversation(self.opened_conversation, self.user)
+                status = dm.manager.leave_conversation(self.opened_conversation, self.user, self.leave_conversation_callback)
                 print(status)
                 self.opened_conversation = None
             else:

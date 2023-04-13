@@ -115,9 +115,10 @@ class Table():
         # Remember to get possible defaults.
         columns = get_column_names(tablename)
         for d in columns:
-            default = get_record_default_value('chatplatform', tablename, d)
-            if default: # None if no default.
-                self.data[d] = default
+            if not d in self.data.keys():
+                default = get_record_default_value('chatplatform', tablename, d)
+                if default: # None if no default.
+                    self.data[d] = default
 
         if commit:
             # By default update Table to database.

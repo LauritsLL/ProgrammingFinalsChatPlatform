@@ -323,9 +323,15 @@ class DbManager(DbLog):
             
         return False
     
+    def create_class_conversation(self, name, class_id):
+        _class = Table.get("Class", {"name":class_id})
+        if _class:
+            Table.Table("conversation",{"name":name,"class":_class.get("id")})
+        else:
+            return "class not found" 
+
     def create_conversation(self, user, username):
         if username=="" or username == user.get("username"):
-
             con_id=r.randint(0,99999)
             while Table.get("Conversation",{"con_id":con_id}) is not None:
                 con_id=r.randint(0,99999)
@@ -333,7 +339,7 @@ class DbManager(DbLog):
             conversation=Table.Table("Conversation",{"name":"","con_id":con_id})
             Table.Table("UserConversationRelation",{"user":user.get("id"), "nickname":user.get("username"),"conversation":conversation.get("id")})
             status = "Successfully created a single-user conversation."
-            self.log(status, reason="Create singe-user conversation")
+            self.log(status, reason="Create single-user conversation")
             return status
         else: 
             # Check that username is befriended.
@@ -360,15 +366,14 @@ class DbManager(DbLog):
                 self.log(status, reason="Success create conversation.")
                 return status
     
-    def leave_conversation(self, conversation, user):
+    def leave_conversation(self, conversation, user, user_confirm_callback):
         """Leave the conversation for good with user received."""
         # Get UserConversationRelation from user that wants to leave and set the new user to be the default "Deleted user" which resides in the DB on setup()
         # Basically "deletes" conversation for the leaving user.
         # If user is the last in conversation delete it entirely.
         if len(conversation.get("users")) == 1:
             # Confirm deletion.
-            print("LAST USER IN CONVERSATION! - If user leaves, conversation will be deleted permanently and never to be recovered.\n")
-            confirm = input("You are the last user in this conversation. Do you wish to proceed?").lower().strip()
+            confirm = user_confirm_callback()
             if confirm == "y":
                # Delete conversation and foreign keys.
                Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")}).delete()
