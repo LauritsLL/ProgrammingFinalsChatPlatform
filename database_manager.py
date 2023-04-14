@@ -377,6 +377,14 @@ class DbManager(DbLog):
             if confirm == "y":
                # Delete conversation and foreign keys.
                Table.get("UserConversationRelation", {"user": user.get("id"), "conversation": conversation.get("id")}).delete()
+               if self.deleted_username in [u.get("username") for u in conversation.get("users")]:
+                   Table.get("UserConversationRelation", {"user": self.deleted_user.get("id"), "conversation": conversation.get("id")}).delete()
+               
+               # Delete all messages to resolve foreign key conflicts.
+               for msg in Table.get("Message", {"conversation": conversation.get("id")}, filtered=True):
+                   for emsg in Table.get("EncryptedDeviceMessageRelation", {"message": msg.get("id")}, filtered=True):
+                       emsg.delete()
+                   msg.delete()
                conversation.delete()
                return "Successfully deleted conversation."
             else:
